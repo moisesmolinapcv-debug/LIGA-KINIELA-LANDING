@@ -462,14 +462,13 @@ export const updateEdition = async (editionUpdate: Partial<KinielaEdition>): Pro
   };
 
   const client = getSupabase();
-  if (client && updatedEdition.id) {
+  if (client) {
     try {
-      const { data, error } = await client
-        .from('kiniela_editions')
-        .update(editionUpdate)
-        .eq('id', updatedEdition.id)
-        .select()
-        .single();
+      const query = client.from('kiniela_editions').update(editionUpdate);
+      const { data, error } =
+        updatedEdition.id && !updatedEdition.id.startsWith('edition-default')
+          ? await query.eq('id', updatedEdition.id).select().single()
+          : await query.eq('is_active', true).select().single();
 
       if (!error && data) {
         current.edition = data as KinielaEdition;
@@ -494,13 +493,18 @@ export const updateEdition = async (editionUpdate: Partial<KinielaEdition>): Pro
 export const addMatch = async (matchData: Omit<Match, 'id'>): Promise<Match> => {
   const current = readLocalData();
 
-  if (supabaseInstance) {
+  const client = getSupabase();
+  if (client) {
     try {
+      let targetEditionId = matchData.edition_id || current.edition.id;
+      if (!targetEditionId || targetEditionId.startsWith('edition-default')) {
+        targetEditionId = 'f5141dac-6248-48d8-9626-0ae9cce4c3fe';
+      }
       const payload = {
         ...matchData,
-        edition_id: matchData.edition_id || current.edition.id,
+        edition_id: targetEditionId,
       };
-      const { data, error } = await supabaseInstance
+      const { data, error } = await client
         .from('matches')
         .insert([payload])
         .select()
