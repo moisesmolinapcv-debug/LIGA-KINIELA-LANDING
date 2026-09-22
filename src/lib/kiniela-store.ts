@@ -15,8 +15,10 @@ export const isSupabaseConfigured = (): boolean => {
     typeof supabaseUrl === 'string' &&
     supabaseUrl.startsWith('https://') &&
     !supabaseUrl.includes('your-project') &&
+    !supabaseUrl.includes('tu-proyecto') &&
     typeof supabaseAnonKey === 'string' &&
-    supabaseAnonKey.length > 20
+    supabaseAnonKey.length > 20 &&
+    !supabaseAnonKey.includes('tu-anon')
   );
 };
 
