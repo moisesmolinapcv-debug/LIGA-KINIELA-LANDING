@@ -2,12 +2,14 @@
 
 import React, { useState } from 'react';
 import { Winner } from '@/types/kiniela';
-import { Trophy, Award, Trash2, Plus, MapPin, Calendar, DollarSign, AlertTriangle, Sparkles } from 'lucide-react';
+import { Trophy, Award, Trash2, Plus, MapPin, Calendar, DollarSign, AlertTriangle, Sparkles, Edit3 } from 'lucide-react';
+import { EditWinnerModal } from './EditWinnerModal';
 
 interface WinnersTabProps {
   winners: Winner[];
   onAddWinner: (newWinner: Omit<Winner, 'id'>) => Promise<void>;
   onDeleteWinner: (id: string) => Promise<void>;
+  onUpdateWinner?: (id: string, update: Partial<Winner>) => Promise<void>;
 }
 
 const CITY_PRESETS = [
@@ -21,7 +23,12 @@ const CITY_PRESETS = [
   'Maturín, Monagas',
 ];
 
-export const WinnersTab: React.FC<WinnersTabProps> = ({ winners, onAddWinner, onDeleteWinner }) => {
+export const WinnersTab: React.FC<WinnersTabProps> = ({
+  winners,
+  onAddWinner,
+  onDeleteWinner,
+  onUpdateWinner,
+}) => {
   const [formData, setFormData] = useState({
     winner_name: '',
     edition_title: 'Edición #24 - Kiniela Millonaria',
@@ -38,19 +45,18 @@ export const WinnersTab: React.FC<WinnersTabProps> = ({ winners, onAddWinner, on
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [winnerToDelete, setWinnerToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [winnerToEdit, setWinnerToEdit] = useState<Winner | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.winner_name || !formData.prize_won) return;
-
     setIsSubmitting(true);
     try {
       await onAddWinner({
-        winner_name: formData.winner_name.trim(),
-        edition_title: formData.edition_title.trim(),
-        prize_won: formData.prize_won.trim(),
-        city: formData.city.trim(),
-        winning_date: formData.winning_date.trim(),
+        winner_name: formData.winner_name.trim() || 'Ganador Oficial',
+        edition_title: formData.edition_title.trim() || 'Jornada Deportiva',
+        prize_won: formData.prize_won.trim() || 'Premio Garantizado',
+        city: formData.city.trim() || 'Venezuela',
+        winning_date: formData.winning_date.trim() || new Date().toLocaleDateString('es-VE'),
         is_recent: Boolean(formData.is_recent),
       });
 
@@ -118,11 +124,10 @@ export const WinnersTab: React.FC<WinnersTabProps> = ({ winners, onAddWinner, on
             {/* Nombre del Ganador */}
             <div>
               <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                Nombre Completo del Ganador *
+                Nombre Completo del Ganador
               </label>
               <input
                 type="text"
-                required
                 placeholder="Ej: Carlos Mendoza o Yorvis Silva"
                 value={formData.winner_name}
                 onChange={(e) => setFormData({ ...formData, winner_name: e.target.value })}
@@ -133,11 +138,10 @@ export const WinnersTab: React.FC<WinnersTabProps> = ({ winners, onAddWinner, on
             {/* Título de la Edición */}
             <div>
               <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                Título de la Edición Ganada *
+                Título de la Edición Ganada
               </label>
               <input
                 type="text"
-                required
                 placeholder="Ej: Edición #24 - Kiniela Millonaria"
                 value={formData.edition_title}
                 onChange={(e) => setFormData({ ...formData, edition_title: e.target.value })}
@@ -149,11 +153,10 @@ export const WinnersTab: React.FC<WinnersTabProps> = ({ winners, onAddWinner, on
             <div>
               <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
                 <Trophy className="w-3.5 h-3.5 text-kiniela-gold" />
-                Monto del Premio Ganado en Bolívares (Bs) *
+                Monto del Premio Ganado en Bolívares (Bs)
               </label>
               <input
                 type="text"
-                required
                 placeholder="Ej: 1.500.000 Bs (Acumulado) o 800.000 Bs (1er Lugar)"
                 value={formData.prize_won}
                 onChange={(e) => setFormData({ ...formData, prize_won: e.target.value })}
@@ -165,11 +168,10 @@ export const WinnersTab: React.FC<WinnersTabProps> = ({ winners, onAddWinner, on
             <div>
               <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
                 <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                Ciudad / Estado *
+                Ciudad / Estado
               </label>
               <input
                 type="text"
-                required
                 placeholder="Ej: Caracas, Dto. Capital"
                 value={formData.city}
                 onChange={(e) => setFormData({ ...formData, city: e.target.value })}
@@ -194,11 +196,10 @@ export const WinnersTab: React.FC<WinnersTabProps> = ({ winners, onAddWinner, on
             <div>
               <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
                 <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                Fecha de Premiación *
+                Fecha de Premiación
               </label>
               <input
                 type="text"
-                required
                 placeholder="Ej: 21 Septiembre 2026"
                 value={formData.winning_date}
                 onChange={(e) => setFormData({ ...formData, winning_date: e.target.value })}
@@ -312,14 +313,26 @@ export const WinnersTab: React.FC<WinnersTabProps> = ({ winners, onAddWinner, on
                       {winner.prize_won}
                     </span>
 
-                    <button
-                      type="button"
-                      onClick={() => setWinnerToDelete(winner.id)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 border border-transparent hover:border-rose-500/30 transition-all"
-                      title="Eliminar ganador"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setWinnerToEdit(winner)}
+                        className="p-1.5 rounded-lg text-slate-300 hover:text-kiniela-gold hover:bg-kiniela-gold/10 border border-white/10 hover:border-kiniela-gold/40 transition-all flex items-center gap-1 text-xs font-bold"
+                        title="Editar ganador"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                        <span className="hidden sm:inline">Editar</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setWinnerToDelete(winner.id)}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 border border-transparent hover:border-rose-500/30 transition-all"
+                        title="Eliminar ganador"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -371,6 +384,16 @@ export const WinnersTab: React.FC<WinnersTabProps> = ({ winners, onAddWinner, on
           </div>
         </div>
       )}
+
+      {/* Modal para Editar Ganador */}
+      <EditWinnerModal
+        isOpen={Boolean(winnerToEdit)}
+        winner={winnerToEdit}
+        onClose={() => setWinnerToEdit(null)}
+        onSave={async (id, update) => {
+          if (onUpdateWinner) await onUpdateWinner(id, update);
+        }}
+      />
     </div>
   );
 };

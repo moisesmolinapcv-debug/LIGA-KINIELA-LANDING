@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { KinielaDataState, KinielaEdition, Match, Winner, Banner, BannerSlide } from '@/types/kiniela';
+import { KinielaDataState, KinielaEdition, Match, Winner, Banner, BannerSlide, SiteCopys } from '@/types/kiniela';
 import {
   getKinielaData,
   updateEdition,
@@ -13,7 +13,9 @@ import {
   updateBannerSlide,
   deleteBannerSlide,
   addWinner,
+  updateWinner,
   deleteWinner,
+  updateSiteCopys,
   resetToDefault,
   subscribeToKiniela,
 } from '@/lib/kiniela-store';
@@ -24,11 +26,12 @@ import { EditionTab } from '@/components/admin/EditionTab';
 import { MatchesTab } from '@/components/admin/MatchesTab';
 import { BannerTab } from '@/components/admin/BannerTab';
 import { WinnersTab } from '@/components/admin/WinnersTab';
+import { CopysTab } from '@/components/admin/CopysTab';
 import { ToastNotification, ToastMessage } from '@/components/admin/ToastNotification';
 
-import { Trophy, CalendarDays, Megaphone, Award } from 'lucide-react';
+import { Trophy, CalendarDays, Megaphone, Award, MessageSquareText } from 'lucide-react';
 
-type TabKey = 'edition' | 'matches' | 'banner' | 'winners';
+type TabKey = 'edition' | 'matches' | 'banner' | 'winners' | 'copys';
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -193,6 +196,24 @@ export default function AdminPage() {
     }
   };
 
+  const handleUpdateWinner = async (id: string, update: Partial<Winner>) => {
+    try {
+      await updateWinner(id, update);
+      addToast('success', 'Ganador Actualizado', 'Los datos del campeón se actualizaron con éxito.');
+    } catch (err) {
+      addToast('error', 'Error al Actualizar', 'No se pudo actualizar los datos del ganador.');
+    }
+  };
+
+  const handleUpdateCopys = async (update: Partial<SiteCopys>) => {
+    try {
+      await updateSiteCopys(update);
+      addToast('success', 'Textos Guardados', 'Los textos de la web se han actualizado con éxito.');
+    } catch (err) {
+      addToast('error', 'Error al Guardar', 'No se pudieron actualizar los textos.');
+    }
+  };
+
   const handleResetData = async () => {
     try {
       const fresh = await resetToDefault();
@@ -348,6 +369,20 @@ export default function AdminPage() {
               {kinielaData.winners.length}
             </span>
           </button>
+
+          {/* Pestaña 5: Textos y Copys */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('copys')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm tracking-wide whitespace-nowrap transition-all ${
+              activeTab === 'copys'
+                ? 'bg-gradient-to-r from-kiniela-vinotinto to-[#9f2c52] text-white shadow-lg shadow-kiniela-vinotinto/30 border border-kiniela-gold/40'
+                : 'text-slate-300 hover:text-white hover:bg-[#0c186b]/60 border border-transparent'
+            }`}
+          >
+            <MessageSquareText className={`w-4 h-4 ${activeTab === 'copys' ? 'text-kiniela-gold' : 'text-slate-400'}`} />
+            <span>📝 Textos y Copys</span>
+          </button>
         </div>
       </nav>
 
@@ -379,7 +414,15 @@ export default function AdminPage() {
           <WinnersTab
             winners={kinielaData.winners}
             onAddWinner={handleAddWinner}
+            onUpdateWinner={handleUpdateWinner}
             onDeleteWinner={handleDeleteWinner}
+          />
+        )}
+
+        {activeTab === 'copys' && (
+          <CopysTab
+            copys={kinielaData.copys}
+            onUpdateCopys={handleUpdateCopys}
           />
         )}
       </main>

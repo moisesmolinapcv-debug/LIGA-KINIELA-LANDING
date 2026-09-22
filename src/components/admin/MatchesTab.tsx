@@ -15,7 +15,13 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronUp,
+  Play,
+  CheckCircle,
+  Sparkles,
+  RefreshCw,
+  Edit3,
 } from 'lucide-react';
+import { EditMatchModal } from './EditMatchModal';
 
 interface MatchesTabProps {
   matches: Match[];
@@ -73,6 +79,7 @@ export const MatchesTab: React.FC<MatchesTabProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [matchToDelete, setMatchToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [matchToEdit, setMatchToEdit] = useState<Match | null>(null);
 
   // Formulario de nuevo partido
   const now = new Date();
@@ -92,13 +99,11 @@ export const MatchesTab: React.FC<MatchesTabProps> = ({
 
   const handleCreateMatch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMatch.home_team || !newMatch.away_team) return;
-
     setIsSubmitting(true);
     try {
       await onAddMatch({
-        home_team: newMatch.home_team.trim(),
-        away_team: newMatch.away_team.trim(),
+        home_team: newMatch.home_team.trim() || 'Equipo Local',
+        away_team: newMatch.away_team.trim() || 'Equipo Visitante',
         home_logo: newMatch.home_logo.trim() || 'https://api.iconify.design/emojione-v1:soccer-ball.svg',
         away_logo: newMatch.away_logo.trim() || 'https://api.iconify.design/emojione-v1:soccer-ball.svg',
         match_date: toIsoString(newMatch.match_date),
@@ -231,10 +236,9 @@ export const MatchesTab: React.FC<MatchesTabProps> = ({
                   🏟️ Equipo Local
                 </span>
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Nombre del Equipo *</label>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">Nombre del Equipo</label>
                   <input
                     type="text"
-                    required
                     placeholder="Ej: Venezuela (Vinotinto) o Real Madrid"
                     value={newMatch.home_team}
                     onChange={(e) => setNewMatch({ ...newMatch, home_team: e.target.value })}
@@ -271,10 +275,9 @@ export const MatchesTab: React.FC<MatchesTabProps> = ({
                   ✈️ Equipo Visitante
                 </span>
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Nombre del Equipo *</label>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">Nombre del Equipo</label>
                   <input
                     type="text"
-                    required
                     placeholder="Ej: Brasil o FC Barcelona"
                     value={newMatch.away_team}
                     onChange={(e) => setNewMatch({ ...newMatch, away_team: e.target.value })}
@@ -311,11 +314,10 @@ export const MatchesTab: React.FC<MatchesTabProps> = ({
               <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1.5 flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5 text-kiniela-gold" />
-                  Fecha y Hora del Encuentro *
+                  Fecha y Hora del Encuentro
                 </label>
                 <input
                   type="datetime-local"
-                  required
                   value={newMatch.match_date}
                   onChange={(e) => setNewMatch({ ...newMatch, match_date: e.target.value })}
                   className="w-full px-3.5 py-2.5 bg-[#00063E] border border-[#1a2785] rounded-xl text-white text-sm font-mono focus:outline-none focus:border-kiniela-gold"
@@ -592,6 +594,17 @@ export const MatchesTab: React.FC<MatchesTabProps> = ({
                         </div>
                       </div>
 
+                      {/* Botón Editar Encuentro */}
+                      <button
+                        type="button"
+                        onClick={() => setMatchToEdit(match)}
+                        className="p-1.5 rounded-lg text-slate-300 hover:text-kiniela-gold hover:bg-kiniela-gold/10 border border-white/10 hover:border-kiniela-gold/40 transition-all flex items-center gap-1 text-xs font-bold"
+                        title="Editar partido completo"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                        <span className="hidden sm:inline">Editar</span>
+                      </button>
+
                       {/* Botón Eliminar Encuentro */}
                       <button
                         type="button"
@@ -653,6 +666,16 @@ export const MatchesTab: React.FC<MatchesTabProps> = ({
           </div>
         </div>
       )}
+
+      {/* Modal para Editar Encuentro Deportivo */}
+      <EditMatchModal
+        isOpen={Boolean(matchToEdit)}
+        match={matchToEdit}
+        onClose={() => setMatchToEdit(null)}
+        onSave={async (id, update) => {
+          await onUpdateMatch(id, update);
+        }}
+      />
     </div>
   );
 };

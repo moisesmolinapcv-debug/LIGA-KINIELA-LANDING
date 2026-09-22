@@ -2,16 +2,17 @@
 
 import React, { useState, useMemo } from 'react';
 import Image from 'next/image';
-import { Match, MatchStatus } from '../types/kiniela';
+import { Match, MatchStatus, SiteCopys } from '../types/kiniela';
 import { Radio, Clock, CheckCircle2, Trophy, ShieldAlert, Sparkles, Filter } from 'lucide-react';
 
 interface MatchesSectionProps {
   matches: Match[];
+  copys?: SiteCopys;
 }
 
 type FilterType = 'TODOS' | 'EN VIVO' | 'EN ESPERA' | 'FINALIZADO';
 
-export const MatchesSection: React.FC<MatchesSectionProps> = ({ matches }) => {
+export const MatchesSection: React.FC<MatchesSectionProps> = ({ matches, copys }) => {
   const [activeFilter, setActiveFilter] = useState<FilterType>('TODOS');
 
   // Estadísticas rápidas para los contadores
@@ -59,13 +60,13 @@ export const MatchesSection: React.FC<MatchesSectionProps> = ({ matches }) => {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-kiniela-vinotinto/30 text-kiniela-gold text-xs font-bold tracking-wider uppercase mb-2">
               <Trophy className="w-3.5 h-3.5" />
-              <span>Cartelera Oficial de Pronósticos</span>
+              <span>{copys?.matches_badge || 'Cartelera Oficial de Pronósticos'}</span>
             </div>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight uppercase">
-              Encuentros de la Jornada
+              {copys?.matches_title || 'Encuentros de la Jornada'}
             </h2>
             <p className="mt-2 text-sm sm:text-base text-slate-300 max-w-xl">
-              Sigue el marcador y el estatus en tiempo real de cada uno de los partidos seleccionados para esta edición.
+              {copys?.matches_subtitle || 'Sigue el marcador y el estatus en tiempo real de cada uno de los partidos seleccionados para esta edición.'}
             </p>
           </div>
 

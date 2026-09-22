@@ -13,6 +13,8 @@ import {
   Trophy,
 } from 'lucide-react';
 
+import { SiteCopys } from '../types/kiniela';
+
 interface FaqItem {
   question: string;
   answer: string;
@@ -51,7 +53,11 @@ const faqs: FaqItem[] = [
   },
 ];
 
-export const RulesAndFaqSection: React.FC = () => {
+interface RulesAndFaqSectionProps {
+  copys?: SiteCopys;
+}
+
+export const RulesAndFaqSection: React.FC<RulesAndFaqSectionProps> = ({ copys }) => {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   const toggleFaq = (index: number) => {
@@ -98,13 +104,13 @@ export const RulesAndFaqSection: React.FC = () => {
           <div className="text-center max-w-3xl mx-auto mb-12">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-kiniela-vinotinto/30 border border-kiniela-vinotinto text-kiniela-gold-light text-xs font-bold uppercase tracking-wider mb-3">
               <BookOpen className="w-4 h-4 text-kiniela-gold" />
-              <span>Reglamento Deportivo</span>
+              <span>{copys?.rules_badge || 'Reglamento Deportivo'}</span>
             </div>
             <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight uppercase">
-              ¿Cómo Funciona la Kiniela?
+              {copys?.rules_title || '¿Cómo Funciona la Kiniela?'}
             </h2>
             <p className="mt-3 text-base sm:text-lg text-slate-300">
-              Un sistema sencillo, justo y transparente diseñado para que demuestres tu pasión por el fútbol.
+              {copys?.rules_subtitle || 'Un sistema sencillo, justo y transparente diseñado para que demuestres tu pasión por el fútbol.'}
             </p>
           </div>
 

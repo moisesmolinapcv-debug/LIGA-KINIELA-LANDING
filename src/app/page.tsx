@@ -50,19 +50,23 @@ export default function HomePage() {
       {/* Contenido Principal de la Landing Page Comercial */}
       <main className="flex-grow">
         {/* 1. Sección Hero con Carrusel Hero Billboard integrado DIRECTAMENTE EN LA CABECERA y montos en Bs */}
-        <Hero edition={data.edition} slides={data.banners} />
+        <Hero edition={data.edition} slides={data.banners} copys={data.copys} />
 
         {/* 2. Cartelera de Partidos en Vivo con Filtros y Marcadores */}
-        <MatchesSection matches={data.matches} />
+        <MatchesSection matches={data.matches} copys={data.copys} />
 
         {/* 3. Salón de Campeones con Ganadores Previos y montos en Bs */}
-        <WinnersSection winners={data.winners} />
+        <WinnersSection winners={data.winners} copys={data.copys} />
 
         {/* 4. Reglamento Paso a Paso y Acordeón FAQ */}
-        <RulesAndFaqSection />
+        <RulesAndFaqSection copys={data.copys} />
 
         {/* 5. Carrusel de Aliados: "En Dónde Jugar" con las 11 casas de apuestas oficiales */}
-        <AlliesCarousel />
+        <AlliesCarousel
+          badgeText={data.copys?.allies_badge}
+          titleText={data.copys?.allies_title}
+          subtitleText={data.copys?.allies_subtitle}
+        />
       </main>
 
       {/* Pie de Página Institucional */}

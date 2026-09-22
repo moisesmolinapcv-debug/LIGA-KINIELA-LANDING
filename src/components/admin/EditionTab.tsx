@@ -130,11 +130,10 @@ export const EditionTab: React.FC<EditionTabProps> = ({ edition, onSave }) => {
             <div className="bg-[#060e4f]/70 border border-[#1a2785] rounded-2xl p-5 space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                  Título Semanal de la Kiniela *
+                  Título Semanal de la Kiniela
                 </label>
                 <input
                   type="text"
-                  required
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   placeholder="Ej: KINIELA MILLONARIA"
@@ -168,11 +167,10 @@ export const EditionTab: React.FC<EditionTabProps> = ({ edition, onSave }) => {
               {/* Número o Denominación de Edición */}
               <div>
                 <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                  Número o Denominación de Edición *
+                  Número o Denominación de Edición
                 </label>
                 <input
                   type="text"
-                  required
                   value={formData.edition_number}
                   onChange={(e) => setFormData({ ...formData, edition_number: e.target.value })}
                   placeholder="Ej: Edición Especial #24"
@@ -195,7 +193,7 @@ export const EditionTab: React.FC<EditionTabProps> = ({ edition, onSave }) => {
 
                 <div>
                   <label className="block text-xs font-medium text-slate-300 mb-1">
-                    Monto en Bolívares (Bs) *
+                    Monto en Bolívares (Bs)
                   </label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-kiniela-gold font-bold text-sm font-mono">
@@ -205,7 +203,6 @@ export const EditionTab: React.FC<EditionTabProps> = ({ edition, onSave }) => {
                       type="number"
                       step="1000"
                       min="0"
-                      required
                       value={formData.prize_amount_bs}
                       onChange={(e) => setFormData({ ...formData, prize_amount_bs: parseFloat(e.target.value) || 0 })}
                       placeholder="1500000"
@@ -229,7 +226,7 @@ export const EditionTab: React.FC<EditionTabProps> = ({ edition, onSave }) => {
 
                 <div>
                   <label className="block text-xs font-medium text-slate-300 mb-1">
-                    Costo en Bolívares (Bs) *
+                    Costo en Bolívares (Bs)
                   </label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-white font-bold text-sm font-mono">
@@ -239,7 +236,6 @@ export const EditionTab: React.FC<EditionTabProps> = ({ edition, onSave }) => {
                       type="number"
                       step="10"
                       min="0"
-                      required
                       value={formData.ticket_price_bs}
                       onChange={(e) => setFormData({ ...formData, ticket_price_bs: parseFloat(e.target.value) || 0 })}
                       placeholder="1000"
@@ -280,11 +276,10 @@ export const EditionTab: React.FC<EditionTabProps> = ({ edition, onSave }) => {
                 <div>
                   <label className="block text-xs font-medium text-slate-300 mb-1.5 flex items-center gap-1.5">
                     <Clock className="w-3.5 h-3.5 text-kiniela-gold" />
-                    <span>Fecha y Hora de Cierre (Límite) *</span>
+                    <span>Fecha y Hora de Cierre (Límite)</span>
                   </label>
                   <input
                     type="datetime-local"
-                    required
                     value={formData.end_date}
                     onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
                     className="w-full px-3 py-2.5 bg-[#00063E] border border-[#1a2785] rounded-xl text-white text-sm focus:outline-none focus:border-kiniela-gold font-mono"

@@ -12,9 +12,33 @@ export interface Ally {
 
 export const ALLIES_LIST: Ally[] = [
   {
+    name: 'Parley.com.ve',
+    url: 'https://parley.com.ve',
+    logo: '/allies/parley-com-ve.png',
+    featured: true,
+  },
+  {
     name: 'Sella Tu Parley',
     url: 'https://sellatuparley.com',
     logo: 'https://sellatuparley.com/_next/image?url=https%3A%2F%2Fcdn.sellatuparley.com%2Fs4pwa%2FPWA%2FPWA-1780400070.png&w=1920&q=75',
+    featured: true,
+  },
+  {
+    name: 'Fanaticash.com',
+    url: 'https://fanaticash.com',
+    logo: '/allies/fanaticash-com.jpeg',
+    featured: true,
+  },
+  {
+    name: 'Casa Grande Bets',
+    url: '#',
+    logo: '/allies/casa-grande-bets.jpeg',
+    featured: true,
+  },
+  {
+    name: 'Divino Play',
+    url: '#',
+    logo: '/allies/divino-play.jpeg',
     featured: true,
   },
   {
@@ -29,16 +53,6 @@ export const ALLIES_LIST: Ally[] = [
     featured: true,
   },
   {
-    name: 'King Deportes',
-    url: 'https://kingdeportes.com',
-    logo: 'https://whitewallets.igamingassets.co/kingdeportes/commons/recurso-1logo-horizontal-21761080908.png',
-  },
-  {
-    name: 'Meridiano Bet',
-    url: 'https://meridianobet.net',
-    logo: 'https://imagedelivery.net/nryTb-R0OMynkGTJ9JP7Sg/79792d66-fbbd-4a9c-dd78-134a4fc24100/public',
-  },
-  {
     name: 'Cordialito',
     url: 'https://cordialito.la',
     logo: 'https://imagedelivery.net/nryTb-R0OMynkGTJ9JP7Sg/4bcabedb-5769-4429-ca33-9084a3e88f00/public',
@@ -48,6 +62,16 @@ export const ALLIES_LIST: Ally[] = [
     name: 'Mi Casino',
     url: 'https://micasino.com',
     logo: 'https://storage.googleapis.com/micasino-sites/micasino/commons/logo-navidad-03-21733168513.png',
+  },
+  {
+    name: 'King Deportes',
+    url: 'https://kingdeportes.com',
+    logo: 'https://whitewallets.igamingassets.co/kingdeportes/commons/recurso-1logo-horizontal-21761080908.png',
+  },
+  {
+    name: 'Meridiano Bet',
+    url: 'https://meridianobet.net',
+    logo: 'https://imagedelivery.net/nryTb-R0OMynkGTJ9JP7Sg/79792d66-fbbd-4a9c-dd78-134a4fc24100/public',
   },
   {
     name: 'Triples.com.ve',
@@ -71,7 +95,17 @@ export const ALLIES_LIST: Ally[] = [
   },
 ];
 
-export const AlliesCarousel: React.FC = () => {
+interface AlliesCarouselProps {
+  badgeText?: string;
+  titleText?: string;
+  subtitleText?: string;
+}
+
+export const AlliesCarousel: React.FC<AlliesCarouselProps> = ({
+  badgeText,
+  titleText,
+  subtitleText,
+}) => {
   // Duplicar lista para garantizar un ciclo infinito continuo y sin saltos
   const repeatedAllies = [...ALLIES_LIST, ...ALLIES_LIST];
 
@@ -85,16 +119,22 @@ export const AlliesCarousel: React.FC = () => {
         <div className="text-center max-w-3xl mx-auto">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#882445]/30 border border-[#FFAF3F]/40 text-[#FFAF3F] text-xs font-bold uppercase tracking-wider mb-3 shadow-brand-vinotinto">
             <ShieldCheck className="w-4 h-4 text-[#FFAF3F]" />
-            <span>Red de Casas Autorizadas</span>
+            <span>{badgeText || 'Red de Casas Autorizadas'}</span>
           </div>
 
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight uppercase font-rockwell">
-            ¿Dónde Jugar?
+            {titleText || '¿Dónde Jugar?'}
           </h2>
 
           <p className="mt-3 text-sm sm:text-base text-slate-300 leading-relaxed">
-            <span className="text-[#FFAF3F] font-bold">Liga Kiniela</span> está inmersa en las casas de apuestas más importantes,
-            serias y confiables de Venezuela. Revisa si está disponible en tu plataforma de confianza y participa directamente.
+            {subtitleText ? (
+              subtitleText
+            ) : (
+              <>
+                <span className="text-[#FFAF3F] font-bold">Liga Kiniela</span> está inmersa en las casas de apuestas más importantes,
+                serias y confiables de Venezuela. Revisa si está disponible en tu plataforma de confianza y participa directamente.
+              </>
+            )}
           </p>
         </div>
       </div>

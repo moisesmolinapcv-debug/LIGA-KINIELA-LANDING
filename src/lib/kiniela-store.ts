@@ -1,9 +1,36 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { KinielaDataState, KinielaEdition, Match, Winner, Banner, BannerSlide } from '../types/kiniela';
+import { KinielaDataState, KinielaEdition, Match, Winner, Banner, BannerSlide, SiteCopys } from '../types/kiniela';
 
 // Clave única en LocalStorage para persistencia y sincronización
 const LOCAL_STORAGE_KEY = 'liga_kiniela_store_v1';
 export const KINIELA_UPDATE_EVENT = 'kiniela_update';
+
+export const DEFAULT_COPYS: SiteCopys = {
+  hero_title: 'KINIELA MILLONARIA - UEFA NATIONS',
+  hero_subtitle: 'La emoción del fútbol nacional e internacional en una sola cartelera. Pronostica cada jornada, sigue los marcadores en tiempo real y sé el próximo en levantar el trofeo.',
+  hero_badge_tag: 'Pronósticos Oficiales',
+  hero_countdown_label: 'Tiempo restante para el cierre de jugadas',
+  hero_prize_title: 'Gran Premio Acumulado',
+  hero_prize_desc: 'Monto oficial garantizado para esta edición',
+  hero_ticket_title: 'Precio del Ticket',
+  hero_ticket_desc: 'Valor por cada combinación pronosticada',
+
+  matches_badge: 'Cartelera Oficial de Pronósticos',
+  matches_title: 'Encuentros de la Jornada',
+  matches_subtitle: 'Sigue el marcador y el estatus en tiempo real de cada uno de los partidos seleccionados para esta edición.',
+
+  winners_badge: 'Transparencia & Cumplimiento',
+  winners_title: 'Salón de Campeones',
+  winners_subtitle: 'Conoce a los ganadores que acertaron sus pronósticos y se llevaron el pozo acumulado. En Liga Kiniela premiamos el conocimiento futbolístico de cada venezolano.',
+
+  rules_badge: 'Transparencia Total',
+  rules_title: '¿Cómo Participar en Liga Kiniela?',
+  rules_subtitle: 'Conoce los sencillos pasos para registrar tu jugada y consultar las respuestas a las dudas más comunes.',
+
+  allies_badge: 'Red de Casas Autorizadas',
+  allies_title: '¿Dónde Jugar?',
+  allies_subtitle: 'Liga Kiniela está inmersa en las casas de apuestas más importantes, serias y confiables de Venezuela. Revisa si está disponible en tu plataforma de confianza y participa directamente.',
+};
 
 // Configuración de Supabase
 const envUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim().replace(/^['"]|['"]$/g, '');
@@ -311,6 +338,7 @@ export const getDefaultSeed = (): KinielaDataState => {
         created_at: now.toISOString(),
       },
     ],
+    copys: DEFAULT_COPYS,
     source: 'local',
     lastUpdated: now.toISOString(),
   };
@@ -337,6 +365,12 @@ const readLocalData = (): KinielaDataState => {
     // Auto-migración si no existía la lista de banners en LocalStorage
     if (!Array.isArray(parsed.banners) || parsed.banners.length === 0) {
       parsed.banners = getDefaultSeed().banners;
+      writeLocalData(parsed);
+    }
+
+    // Auto-migración si no existían copys en LocalStorage
+    if (!parsed.copys) {
+      parsed.copys = DEFAULT_COPYS;
       writeLocalData(parsed);
     }
     
@@ -758,6 +792,71 @@ export const deleteWinner = async (id: string): Promise<boolean> => {
   current.source = 'local';
   writeLocalData(current);
   return true;
+};
+
+/**
+ * Actualiza un ganador existente.
+ */
+export const updateWinner = async (id: string, winnerUpdate: Partial<Winner>): Promise<Winner> => {
+  const current = readLocalData();
+
+  if (supabaseInstance) {
+    try {
+      const { data, error } = await supabaseInstance
+        .from('winners')
+        .update(winnerUpdate)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (!error && data) {
+        const updated = data as Winner;
+        current.winners = current.winners.map((w) => (w.id === id ? updated : w));
+        current.source = 'supabase';
+        writeLocalData(current);
+        return updated;
+      }
+    } catch (err) {
+      console.warn('[LigaKiniela] Error al actualizar ganador en Supabase, aplicando fallback local:', err);
+    }
+  }
+
+  const existing = current.winners.find((w) => w.id === id);
+  const updated: Winner = {
+    ...(existing || ({} as Winner)),
+    ...winnerUpdate,
+    id,
+  };
+
+  current.winners = current.winners.map((w) => (w.id === id ? updated : w));
+  current.source = 'local';
+  writeLocalData(current);
+  return updated;
+};
+
+/**
+ * Actualiza los textos y copys de los módulos de la web.
+ */
+export const updateSiteCopys = async (copysUpdate: Partial<SiteCopys>): Promise<SiteCopys> => {
+  const current = readLocalData();
+  const updatedCopys: SiteCopys = {
+    ...(current.copys || DEFAULT_COPYS),
+    ...copysUpdate,
+  };
+  current.copys = updatedCopys;
+  writeLocalData(current);
+
+  if (supabaseInstance) {
+    try {
+      await supabaseInstance
+        .from('site_copys')
+        .upsert({ id: 'main_copys', ...updatedCopys });
+    } catch {
+      // Fallback a LocalStorage garantizado
+    }
+  }
+
+  return updatedCopys;
 };
 
 /**

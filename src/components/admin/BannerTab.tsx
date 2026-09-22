@@ -14,7 +14,9 @@ import {
   ArrowRight,
   Layers,
   Image as ImageIcon,
+  Edit3,
 } from 'lucide-react';
+import { EditBannerModal } from './EditBannerModal';
 
 interface BannerTabProps {
   banner?: Banner | null;
@@ -67,6 +69,7 @@ export const BannerTab: React.FC<BannerTabProps> = ({
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewSelectedId, setPreviewSelectedId] = useState<string | null>(null);
+  const [bannerToEdit, setBannerToEdit] = useState<BannerSlide | null>(null);
 
   const selectedSlide =
     banners.find((b) => b.id === previewSelectedId) ||
@@ -94,14 +97,12 @@ export const BannerTab: React.FC<BannerTabProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title || !formData.image_url) return;
-
     setIsSubmitting(true);
     try {
       await onAddBannerSlide({
-        title: formData.title.trim(),
-        image_url: formData.image_url.trim(),
-        image_url_mobile: (formData.image_url_mobile || formData.image_url).trim(),
+        title: formData.title.trim() || 'Promoción Liga Kiniela',
+        image_url: formData.image_url.trim() || PRESET_SUGGESTIONS[0].image_url,
+        image_url_mobile: (formData.image_url_mobile || formData.image_url).trim() || PRESET_SUGGESTIONS[0].image_url_mobile,
         button_text: formData.button_text.trim() || 'Ver Partidos →',
         target_section: formData.target_section.trim() || '#partidos',
         is_active: Boolean(formData.is_active),
@@ -213,6 +214,20 @@ export const BannerTab: React.FC<BannerTabProps> = ({
                         {slide.is_active ? 'Activo' : 'Pausado'}
                       </button>
 
+                      {/* Editar */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setBannerToEdit(slide);
+                        }}
+                        className="p-1.5 rounded-lg text-slate-300 hover:text-kiniela-gold hover:bg-kiniela-gold/10 border border-white/10 hover:border-kiniela-gold/40 transition-all flex items-center gap-1 text-xs font-bold"
+                        title="Editar banner"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Editar</span>
+                      </button>
+
                       {/* Eliminar */}
                       <button
                         type="button"
@@ -265,11 +280,10 @@ export const BannerTab: React.FC<BannerTabProps> = ({
               {/* Título */}
               <div>
                 <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">
-                  Título Principal del Banner *
+                  Título Principal del Banner
                 </label>
                 <input
                   type="text"
-                  required
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   placeholder="Ej: ¡Gran Pozo de 1.500.000 Bs! Juega tu Kiniela"
@@ -281,11 +295,10 @@ export const BannerTab: React.FC<BannerTabProps> = ({
               <div>
                 <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1 flex items-center gap-1.5">
                   <Monitor className="w-3.5 h-3.5 text-kiniela-gold" />
-                  <span>URL Imagen para Escritorio (Panorámica 1920x650 o 16:6) *</span>
+                  <span>URL Imagen para Escritorio (Panorámica 1920x650 o 16:6)</span>
                 </label>
                 <input
                   type="url"
-                  required
                   value={formData.image_url}
                   onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
                   placeholder="https://images.unsplash.com/... o enlace de tu imagen web"
@@ -470,6 +483,16 @@ export const BannerTab: React.FC<BannerTabProps> = ({
         </div>
 
       </div>
+
+      {/* Modal para Editar Banner */}
+      <EditBannerModal
+        isOpen={Boolean(bannerToEdit)}
+        slide={bannerToEdit}
+        onClose={() => setBannerToEdit(null)}
+        onSave={async (id, update) => {
+          await onUpdateBannerSlide(id, update);
+        }}
+      />
     </div>
   );
 };

@@ -1,14 +1,15 @@
 'use client';
 
 import React from 'react';
-import { Winner } from '../types/kiniela';
+import { Winner, SiteCopys } from '../types/kiniela';
 import { Trophy, Medal, MapPin, Calendar, CheckCircle, Award } from 'lucide-react';
 
 interface WinnersSectionProps {
   winners: Winner[];
+  copys?: SiteCopys;
 }
 
-export const WinnersSection: React.FC<WinnersSectionProps> = ({ winners }) => {
+export const WinnersSection: React.FC<WinnersSectionProps> = ({ winners, copys }) => {
   return (
     <section id="campeones" className="py-16 sm:py-24 bg-kiniela-navy-deep relative scroll-mt-20">
       {/* Luces sutiles */}
@@ -21,14 +22,13 @@ export const WinnersSection: React.FC<WinnersSectionProps> = ({ winners }) => {
         <div className="text-center max-w-3xl mx-auto mb-14">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-kiniela-gold/15 border border-kiniela-gold/30 text-kiniela-gold text-xs font-bold uppercase tracking-wider mb-3">
             <Trophy className="w-4 h-4 text-kiniela-gold" />
-            <span>Transparencia & Cumplimiento</span>
+            <span>{copys?.winners_badge || 'Transparencia & Cumplimiento'}</span>
           </div>
           <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight uppercase">
-            Salón de Campeones
+            {copys?.winners_title || 'Salón de Campeones'}
           </h2>
           <p className="mt-3 text-base sm:text-lg text-slate-300 leading-relaxed">
-            Conoce a los ganadores que acertaron sus pronósticos y se llevaron el pozo acumulado. 
-            En Liga Kiniela premiamos el conocimiento futbolístico de cada venezolano.
+            {copys?.winners_subtitle || 'Conoce a los ganadores que acertaron sus pronósticos y se llevaron el pozo acumulado. En Liga Kiniela premiamos el conocimiento futbolístico de cada venezolano.'}
           </p>
         </div>
 

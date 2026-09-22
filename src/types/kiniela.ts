@@ -62,12 +62,45 @@ export interface BannerSlide {
   created_at?: string;
 }
 
+export interface SiteCopys {
+  // Hero
+  hero_title?: string;
+  hero_subtitle?: string;
+  hero_badge_tag?: string;
+  hero_countdown_label?: string;
+  hero_prize_title?: string;
+  hero_prize_desc?: string;
+  hero_ticket_title?: string;
+  hero_ticket_desc?: string;
+
+  // Partidos
+  matches_badge?: string;
+  matches_title?: string;
+  matches_subtitle?: string;
+
+  // Ganadores
+  winners_badge?: string;
+  winners_title?: string;
+  winners_subtitle?: string;
+
+  // Reglas & FAQ
+  rules_badge?: string;
+  rules_title?: string;
+  rules_subtitle?: string;
+
+  // Aliados
+  allies_badge?: string;
+  allies_title?: string;
+  allies_subtitle?: string;
+}
+
 export interface KinielaDataState {
   edition: KinielaEdition;
   matches: Match[];
   winners: Winner[];
   banner: Banner | null;
   banners: BannerSlide[];
+  copys?: SiteCopys;
   source: 'supabase' | 'local';
   lastUpdated: string;
 }

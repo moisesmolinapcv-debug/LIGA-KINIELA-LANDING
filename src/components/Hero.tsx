@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { KinielaEdition, BannerSlide } from '../types/kiniela';
+import { KinielaEdition, BannerSlide, SiteCopys } from '../types/kiniela';
 import { formatBs } from '../lib/kiniela-store';
 import { HeroBillboardSlider } from './HeroBillboardSlider';
 import { Trophy, Ticket, Flame, Clock, ChevronDown, CheckCircle2 } from 'lucide-react';
@@ -9,6 +9,7 @@ import { Trophy, Ticket, Flame, Clock, ChevronDown, CheckCircle2 } from 'lucide-
 interface HeroProps {
   edition: KinielaEdition;
   slides?: BannerSlide[];
+  copys?: SiteCopys;
 }
 
 interface TimeRemaining {
@@ -19,7 +20,7 @@ interface TimeRemaining {
   isExpired: boolean;
 }
 
-export const Hero: React.FC<HeroProps> = ({ edition, slides = [] }) => {
+export const Hero: React.FC<HeroProps> = ({ edition, slides = [], copys }) => {
   const [mounted, setMounted] = useState(false);
   const [timeLeft, setTimeLeft] = useState<TimeRemaining>({
     days: 0,
@@ -85,25 +86,24 @@ export const Hero: React.FC<HeroProps> = ({ edition, slides = [] }) => {
               <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-kiniela-gold animate-bounce-subtle" />
               <span className="uppercase tracking-wider">{edition.edition_number || 'Jornada Deportiva'}</span>
               <span className="w-1.5 h-1.5 rounded-full bg-kiniela-gold"></span>
-              <span className="text-white">Pronósticos Oficiales</span>
+              <span className="text-white">{copys?.hero_badge_tag || 'Pronósticos Oficiales'}</span>
             </div>
 
             {/* Título Principal Dinámico de la Kiniela */}
             <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-7xl font-extrabold tracking-tight text-white uppercase max-w-4xl leading-tight font-rockwell">
-              {edition.title || 'KINIELA MILLONARIA'}
+              {copys?.hero_title || edition.title || 'KINIELA MILLONARIA'}
             </h1>
 
             {/* Subtítulo Persuasivo */}
             <p className="mt-2 text-xs sm:text-base md:text-lg lg:text-xl text-slate-300 max-w-2xl font-normal leading-relaxed px-1 sm:px-2">
-              La emoción del fútbol nacional e internacional en una sola cartelera. Pronostica cada jornada, 
-              sigue los marcadores en tiempo real y sé el próximo en levantar el trofeo.
+              {copys?.hero_subtitle || 'La emoción del fútbol nacional e internacional en una sola cartelera. Pronostica cada jornada, sigue los marcadores en tiempo real y sé el próximo en levantar el trofeo.'}
             </p>
 
             {/* Contador Regresivo en Vivo */}
             <div className="mt-4 sm:mt-7 w-full max-w-2xl bg-kiniela-navy-deep/80 border border-kiniela-navy-border/80 rounded-xl sm:rounded-2xl p-3 sm:p-6 backdrop-blur-md shadow-2xl">
               <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-2.5 sm:mb-4 text-slate-300 text-[11px] sm:text-sm uppercase font-semibold tracking-wider">
                 <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-kiniela-gold animate-spin-slow" />
-                <span>Tiempo restante para el cierre de jugadas</span>
+                <span>{copys?.hero_countdown_label || 'Tiempo restante para el cierre de jugadas'}</span>
               </div>
 
               {timeLeft.isExpired ? (
@@ -160,7 +160,7 @@ export const Hero: React.FC<HeroProps> = ({ edition, slides = [] }) => {
                 
                 <div className="flex items-center gap-2 text-kiniela-gold-light mb-1">
                   <Trophy className="w-4 sm:w-5 h-4 sm:h-5 text-kiniela-gold flex-shrink-0" />
-                  <span className="text-xs sm:text-sm font-bold tracking-wider uppercase">Gran Premio Acumulado</span>
+                  <span className="text-xs sm:text-sm font-bold tracking-wider uppercase">{copys?.hero_prize_title || 'Gran Premio Acumulado'}</span>
                 </div>
                 
                 <div className="mt-2 text-2xl sm:text-4xl md:text-5xl font-black text-kiniela-gold tracking-tight glow-gold-text font-rockwell">
@@ -168,7 +168,7 @@ export const Hero: React.FC<HeroProps> = ({ edition, slides = [] }) => {
                 </div>
                 
                 <p className="mt-1.5 text-xs sm:text-sm text-slate-200 font-semibold">
-                  Monto oficial garantizado para esta edición
+                  {copys?.hero_prize_desc || 'Monto oficial garantizado para esta edición'}
                 </p>
                 
                 <div className="mt-4 flex items-center gap-2 text-[11px] sm:text-xs text-emerald-300 bg-emerald-950/50 border border-emerald-500/30 py-1 px-2.5 rounded-lg w-fit">
@@ -185,7 +185,7 @@ export const Hero: React.FC<HeroProps> = ({ edition, slides = [] }) => {
                 
                 <div className="flex items-center gap-2 text-slate-300 mb-1">
                   <Ticket className="w-4 sm:w-5 h-4 sm:h-5 text-kiniela-gold flex-shrink-0" />
-                  <span className="text-xs sm:text-sm font-bold tracking-wider uppercase">Precio del Ticket</span>
+                  <span className="text-xs sm:text-sm font-bold tracking-wider uppercase">{copys?.hero_ticket_title || 'Precio del Ticket'}</span>
                 </div>
                 
                 <div className="mt-2 text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-tight font-rockwell">
@@ -193,7 +193,7 @@ export const Hero: React.FC<HeroProps> = ({ edition, slides = [] }) => {
                 </div>
                 
                 <p className="mt-1.5 text-xs sm:text-sm text-slate-300 font-medium">
-                  Valor por cada combinación pronosticada
+                  {copys?.hero_ticket_desc || 'Valor por cada combinación pronosticada'}
                 </p>
                 
                 <div className="mt-4 flex items-center gap-2 text-[11px] sm:text-xs text-slate-200 bg-white/10 border border-white/15 py-1 px-2.5 rounded-lg w-fit">
