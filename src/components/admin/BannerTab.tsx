@@ -15,8 +15,15 @@ import {
   Layers,
   Image as ImageIcon,
   Edit3,
+  Copy,
+  Database,
+  HelpCircle,
+  CheckCheck,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { EditBannerModal } from './EditBannerModal';
+import { ImageUploadField } from './ImageUploadField';
 
 interface BannerTabProps {
   banner?: Banner | null;
@@ -70,6 +77,8 @@ export const BannerTab: React.FC<BannerTabProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewSelectedId, setPreviewSelectedId] = useState<string | null>(null);
   const [bannerToEdit, setBannerToEdit] = useState<BannerSlide | null>(null);
+  const [showSqlHelp, setShowSqlHelp] = useState(false);
+  const [sqlCopied, setSqlCopied] = useState(false);
 
   const selectedSlide =
     banners.find((b) => b.id === previewSelectedId) ||
@@ -137,13 +146,70 @@ export const BannerTab: React.FC<BannerTabProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowSqlHelp(!showSqlHelp)}
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-kiniela-navy text-slate-300 hover:text-white border border-[#1a2785] hover:border-kiniela-gold/50 transition-colors"
+          >
+            <Database className="w-3.5 h-3.5 text-kiniela-gold" />
+            <span>Configuración Supabase Storage</span>
+            {showSqlHelp ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </button>
+
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-[#0c186b]/70 text-[#FFAF3F] border border-[#FFAF3F]/40">
             <Layers className="w-3.5 h-3.5" />
             <span>{banners.length} {banners.length === 1 ? 'Banner' : 'Banners'} Activos</span>
           </span>
         </div>
       </div>
+
+      {/* Tarjeta Desplegable con Script SQL de Configuración de Storage */}
+      {showSqlHelp && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-[#00063E] border border-kiniela-gold/40 shadow-xl space-y-3 animate-fadeIn">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Database className="w-4 h-4 text-kiniela-gold" />
+              <h4 className="text-sm font-bold text-white uppercase tracking-wider">
+                Habilitar Bucket de Imágenes en Supabase
+              </h4>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const sql = `-- 1. Crear el bucket público 'banners'\nINSERT INTO storage.buckets (id, name, public) \nVALUES ('banners', 'banners', true)\nON CONFLICT (id) DO UPDATE SET public = true;\n\n-- 2. Permitir lectura pública\nCREATE POLICY "Public Read Banners" \nON storage.objects FOR SELECT \nUSING (bucket_id = 'banners');\n\n-- 3. Permitir subidas desde el admin\nCREATE POLICY "Public Upload Banners" \nON storage.objects FOR INSERT \nWITH CHECK (bucket_id = 'banners');\n\n-- 4. Permitir actualizaciones\nCREATE POLICY "Public Update Banners" \nON storage.objects FOR UPDATE \nUSING (bucket_id = 'banners');`;
+                navigator.clipboard.writeText(sql);
+                setSqlCopied(true);
+                setTimeout(() => setSqlCopied(false), 2500);
+              }}
+              className="px-3 py-1.5 rounded-lg bg-kiniela-gold text-kiniela-navy text-xs font-bold flex items-center gap-1.5 hover:bg-kiniela-gold-hover transition-colors shadow-sm"
+            >
+              {sqlCopied ? <CheckCheck className="w-3.5 h-3.5 text-emerald-950" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{sqlCopied ? '¡SQL Copiado!' : 'Copiar SQL'}</span>
+            </button>
+          </div>
+
+          <p className="text-xs text-slate-300 leading-relaxed">
+            Para que las imágenes se guarden automáticamente en tu cuenta de Supabase en lugar de requerir URLs externas, pega y ejecuta este código en el <strong>SQL Editor</strong> de tu consola de Supabase (solo se ejecuta 1 sola vez):
+          </p>
+
+          <pre className="p-3 bg-black/60 rounded-xl border border-white/10 text-[11px] font-mono text-emerald-400 overflow-x-auto leading-relaxed">
+{`-- 1. Crear el bucket público 'banners'
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('banners', 'banners', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+-- 2. Permitir lectura pública de las imágenes
+CREATE POLICY "Public Read Banners" ON storage.objects FOR SELECT USING (bucket_id = 'banners');
+
+-- 3. Permitir subidas directas desde el panel
+CREATE POLICY "Public Upload Banners" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'banners');
+
+-- 4. Permitir actualización de imágenes
+CREATE POLICY "Public Update Banners" ON storage.objects FOR UPDATE USING (bucket_id = 'banners');`}
+          </pre>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
@@ -291,38 +357,29 @@ export const BannerTab: React.FC<BannerTabProps> = ({
                 />
               </div>
 
-              {/* URL Imagen Escritorio */}
-              <div>
-                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                  <Monitor className="w-3.5 h-3.5 text-kiniela-gold" />
-                  <span>URL Imagen para Escritorio (Panorámica 1920x650 o 16:6)</span>
-                </label>
-                <input
-                  type="url"
-                  value={formData.image_url}
-                  onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                  placeholder="https://images.unsplash.com/... o enlace de tu imagen web"
-                  className="w-full px-3.5 py-2 bg-[#00063E] border border-[#1a2785] rounded-xl text-white text-xs font-mono focus:outline-none focus:border-kiniela-gold"
-                />
-              </div>
+              {/* Imagen para Escritorio con Subida Directa */}
+              <ImageUploadField
+                label="Imagen para Escritorio"
+                aspectRatioLabel="Panorámica 1920x650 (16:6)"
+                icon={<Monitor className="w-3.5 h-3.5 text-kiniela-gold" />}
+                value={formData.image_url}
+                onChange={(url) => setFormData({ ...formData, image_url: url })}
+                placeholder="https://... o selecciona una imagen de tu equipo"
+                helperText="Arte horizontal visible en pantallas de computadora y tablets."
+                bucketName="banners"
+              />
 
-              {/* URL Imagen Móvil */}
-              <div>
-                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                  <Smartphone className="w-3.5 h-3.5 text-kiniela-gold" />
-                  <span>URL Imagen para Móvil (Vertical 1080x1250 o 4:5)</span>
-                </label>
-                <input
-                  type="url"
-                  value={formData.image_url_mobile}
-                  onChange={(e) => setFormData({ ...formData, image_url_mobile: e.target.value })}
-                  placeholder="Opcional: Si se deja en blanco usará la imagen de escritorio recortada"
-                  className="w-full px-3.5 py-2 bg-[#00063E] border border-[#1a2785] rounded-xl text-white text-xs font-mono focus:outline-none focus:border-kiniela-gold"
-                />
-                <span className="text-[10px] text-slate-400 mt-0.5 block">
-                  Permite que en celulares se muestre el arte vertical sin deformarse, exactamente como en SellaTuParley.
-                </span>
-              </div>
+              {/* Imagen para Móvil con Subida Directa */}
+              <ImageUploadField
+                label="Imagen para Móvil"
+                aspectRatioLabel="Vertical 1080x1250 (4:5)"
+                icon={<Smartphone className="w-3.5 h-3.5 text-kiniela-gold" />}
+                value={formData.image_url_mobile}
+                onChange={(url) => setFormData({ ...formData, image_url_mobile: url })}
+                placeholder="Opcional: Si se deja vacío se usará la versión de escritorio"
+                helperText="Permite que en celulares se muestre el arte vertical sin deformarse, idéntico a SellaTuParley."
+                bucketName="banners"
+              />
 
               {/* Botón y Destino */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

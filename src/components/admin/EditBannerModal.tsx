@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { BannerSlide } from '../../types/kiniela';
-import { X, Save, Image as ImageIcon } from 'lucide-react';
+import { BannerSlide } from '@/types/kiniela';
+import { X, Save, Image as ImageIcon, Monitor, Smartphone } from 'lucide-react';
+import { ImageUploadField } from './ImageUploadField';
 
 interface EditBannerModalProps {
   isOpen: boolean;
@@ -102,31 +103,29 @@ export const EditBannerModal: React.FC<EditBannerModalProps> = ({
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
-              URL Imagen Escritorio / PC (Panorámica 21:9 o 16:7)
-            </label>
-            <input
-              type="text"
-              value={formData.image_url}
-              onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-              className="w-full px-3 py-2 rounded-xl bg-kiniela-navy border border-white/15 text-white text-xs font-mono focus:border-kiniela-gold outline-none"
-              placeholder="https://... o /allies/..."
-            />
-          </div>
+          {/* Imagen Escritorio */}
+          <ImageUploadField
+            label="Imagen Escritorio / PC"
+            aspectRatioLabel="Panorámica 1920x650 (16:6)"
+            icon={<Monitor className="w-3.5 h-3.5 text-kiniela-gold" />}
+            value={formData.image_url}
+            onChange={(url) => setFormData({ ...formData, image_url: url })}
+            placeholder="https://... o sube una imagen"
+            helperText="Arte horizontal para computadoras y pantallas grandes."
+            bucketName="banners"
+          />
 
-          <div>
-            <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
-              URL Imagen Móvil / Smartphone (Vertical o cuadrada 4:5 o 1:1)
-            </label>
-            <input
-              type="text"
-              value={formData.image_url_mobile}
-              onChange={(e) => setFormData({ ...formData, image_url_mobile: e.target.value })}
-              className="w-full px-3 py-2 rounded-xl bg-kiniela-navy border border-white/15 text-white text-xs font-mono focus:border-kiniela-gold outline-none"
-              placeholder="https://... o /allies/... (Opcional, usa escritorio si está vacía)"
-            />
-          </div>
+          {/* Imagen Móvil */}
+          <ImageUploadField
+            label="Imagen Móvil / Smartphone"
+            aspectRatioLabel="Vertical 1080x1250 (4:5)"
+            icon={<Smartphone className="w-3.5 h-3.5 text-kiniela-gold" />}
+            value={formData.image_url_mobile}
+            onChange={(url) => setFormData({ ...formData, image_url_mobile: url })}
+            placeholder="Opcional: Si se deja vacío se usará la de escritorio"
+            helperText="Arte vertical adaptado para pantallas de teléfonos."
+            bucketName="banners"
+          />
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
