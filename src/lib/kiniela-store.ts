@@ -446,7 +446,7 @@ export const getKinielaData = async (): Promise<KinielaDataState> => {
         client.from('kiniela_editions').select('*').eq('is_active', true).order('created_at', { ascending: false }).limit(1),
         client.from('matches').select('*').order('sort_order', { ascending: true }),
         client.from('winners').select('*').order('created_at', { ascending: false }),
-        client.from('banners').select('*').eq('is_active', true).order('sort_order', { ascending: true }),
+        client.from('banners').select('*').order('sort_order', { ascending: true }),
       ]);
 
       const hasEdition = editionsRes.data && editionsRes.data.length > 0;
@@ -686,6 +686,41 @@ export const updateBanner = async (bannerUpdate: Partial<Banner>): Promise<Banne
  */
 export const addBannerSlide = async (slideData: Omit<BannerSlide, 'id'>): Promise<BannerSlide> => {
   const current = readLocalData();
+  const client = getSupabase();
+
+  if (client) {
+    try {
+      const payload = {
+        title: slideData.title,
+        image_url: slideData.image_url,
+        image_url_mobile: slideData.image_url_mobile || slideData.image_url,
+        button_text: slideData.button_text || 'Ver Partidos →',
+        target_section: slideData.target_section || '#partidos',
+        target_link: '#',
+        is_active: slideData.is_active ?? true,
+        sort_order: slideData.sort_order || ((current.banners || []).length + 1),
+      };
+
+      const { data, error } = await client
+        .from('banners')
+        .insert([payload])
+        .select()
+        .single();
+
+      if (!error && data) {
+        const createdSlide = data as BannerSlide;
+        current.banners = [...(current.banners || []), createdSlide];
+        current.source = 'supabase';
+        writeLocalData(current);
+        return createdSlide;
+      } else if (error) {
+        console.warn('[LigaKiniela] Error al crear banner en Supabase:', error);
+      }
+    } catch (err) {
+      console.warn('[LigaKiniela] Excepción al crear banner en Supabase, aplicando fallback local:', err);
+    }
+  }
+
   const newSlide: BannerSlide = {
     ...slideData,
     id: 'slide-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
@@ -703,6 +738,36 @@ export const addBannerSlide = async (slideData: Omit<BannerSlide, 'id'>): Promis
  */
 export const updateBannerSlide = async (id: string, update: Partial<BannerSlide>): Promise<BannerSlide> => {
   const current = readLocalData();
+  const client = getSupabase();
+
+  if (client && !id.startsWith('slide-default')) {
+    try {
+      const { data, error } = await client
+        .from('banners')
+        .update(update)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (!error && data) {
+        const updatedSlide = data as BannerSlide;
+        const index = (current.banners || []).findIndex((s) => s.id === id);
+        if (index !== -1) {
+          current.banners[index] = updatedSlide;
+        } else {
+          current.banners = [...(current.banners || []), updatedSlide];
+        }
+        current.source = 'supabase';
+        writeLocalData(current);
+        return updatedSlide;
+      } else if (error) {
+        console.warn('[LigaKiniela] Error al actualizar banner en Supabase:', error);
+      }
+    } catch (err) {
+      console.warn('[LigaKiniela] Excepción al actualizar banner en Supabase:', err);
+    }
+  }
+
   const index = (current.banners || []).findIndex((s) => s.id === id);
   if (index === -1) {
     throw new Error(`Banner con id ${id} no encontrado.`);
@@ -724,8 +789,21 @@ export const updateBannerSlide = async (id: string, update: Partial<BannerSlide>
  */
 export const deleteBannerSlide = async (id: string): Promise<boolean> => {
   const current = readLocalData();
+  const client = getSupabase();
+
+  if (client && !id.startsWith('slide-default')) {
+    try {
+      const { error } = await client.from('banners').delete().eq('id', id);
+      if (error) {
+        console.warn('[LigaKiniela] Error al eliminar banner en Supabase:', error);
+      }
+    } catch (err) {
+      console.warn('[LigaKiniela] Excepción al eliminar banner en Supabase:', err);
+    }
+  }
+
   current.banners = (current.banners || []).filter((s) => s.id !== id);
-  current.source = 'local';
+  current.source = 'supabase';
   writeLocalData(current);
   return true;
 };
