@@ -1,0 +1,131 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-navy: #00063E;
+    --color-navy-deep: #000428;
+    --color-navy-card: #060e4f;
+    --color-vinotinto: #882445;
+    --color-vinotinto-hover: #9f2c52;
+    --color-gold: #FFAF3F;
+    --color-gold-hover: #ffbf5c;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: #00063E;
+    color: #FFFFFF;
+    font-family: var(--font-poppins), 'Poppins', system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  /* Barra de desplazamiento personalizada estilo deportivo */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #000428;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #882445;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #FFAF3F;
+  }
+}
+
+@layer utilities {
+  /* Filtro oficial para Isologo sobre fondo oscuro (Brand Guidelines Pág. 6) */
+  .brand-logo-dark {
+    filter: drop-shadow(0 0 1px #FFFFFF) 
+            drop-shadow(0 0 2px #FFFFFF) 
+            drop-shadow(0 0 4px rgba(255, 255, 255, 0.5));
+    transition: filter 0.3s ease;
+  }
+
+  .brand-logo-dark:hover {
+    filter: drop-shadow(0 0 2px #FFAF3F) 
+            drop-shadow(0 0 5px #FFAF3F) 
+            drop-shadow(0 0 8px rgba(255, 175, 63, 0.6));
+  }
+
+  /* Tarjetas de cristal y efectos de resplandor (Glow) */
+  .glass-card {
+    background: rgba(6, 14, 79, 0.72);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 175, 63, 0.15);
+    box-shadow: 0 10px 30px -5px rgba(0, 4, 40, 0.6);
+  }
+
+  .glass-card-hover {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .glass-card-hover:hover {
+    border-color: rgba(255, 175, 63, 0.45);
+    transform: translateY(-3px);
+    box-shadow: 0 15px 35px -5px rgba(255, 175, 63, 0.2), 0 0 20px -5px rgba(136, 36, 69, 0.3);
+  }
+
+  .glass-card-vinotinto {
+    background: linear-gradient(135deg, rgba(136, 36, 69, 0.25) 0%, rgba(6, 14, 79, 0.75) 100%);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(136, 36, 69, 0.35);
+  }
+
+  .glow-gold {
+    box-shadow: 0 0 25px rgba(255, 175, 63, 0.35);
+  }
+
+  .glow-gold-text {
+    text-shadow: 0 0 15px rgba(255, 175, 63, 0.5);
+  }
+
+  .glow-vinotinto {
+    box-shadow: 0 0 25px rgba(136, 36, 69, 0.45);
+  }
+
+  /* Animación deportiva de pulso en vivo */
+  @keyframes livePulse {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.4;
+      transform: scale(1.15);
+    }
+  }
+
+  .animate-live-pulse {
+    animation: livePulse 1.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes radarPulse {
+    0% {
+      transform: scale(0.9);
+      box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    }
+    70% {
+      transform: scale(1.05);
+      box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+    }
+    100% {
+      transform: scale(0.9);
+      box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+    }
+  }
+
+  .animate-radar {
+    animation: radarPulse 1.8s infinite;
+  }
+}
