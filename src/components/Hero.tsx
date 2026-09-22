@@ -61,7 +61,7 @@ export const Hero: React.FC<HeroProps> = ({ edition, slides = [] }) => {
   }, [edition.end_date]);
 
   return (
-    <section id="inicio" className="relative pt-24 pb-14 sm:pt-28 sm:pb-16 md:pt-32 md:pb-20 overflow-hidden bg-gradient-to-b from-kiniela-navy-deep via-kiniela-navy to-kiniela-navy-deep scroll-mt-20">
+    <section id="inicio" className="relative pt-20 pb-12 sm:pt-28 sm:pb-16 md:pt-32 md:pb-20 overflow-hidden bg-gradient-to-b from-kiniela-navy-deep via-kiniela-navy to-kiniela-navy-deep scroll-mt-20">
       {/* Luces de fondo y resplandores de estadio */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[350px] bg-kiniela-vinotinto/20 blur-[120px] rounded-full pointer-events-none" />
       <div className="absolute top-10 right-10 w-96 h-96 bg-kiniela-gold/10 blur-[130px] rounded-full pointer-events-none" />
@@ -77,83 +77,83 @@ export const Hero: React.FC<HeroProps> = ({ edition, slides = [] }) => {
         {/* ========================================================================= */}
         <HeroBillboardSlider slides={slides} />
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center text-center">
             
             {/* Badge superior de edición activa */}
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-kiniela-vinotinto/40 border border-kiniela-gold/40 text-kiniela-gold-light text-xs sm:text-sm font-semibold mb-4 sm:mb-5 shadow-brand-vinotinto animate-fadeIn">
-              <Flame className="w-4 h-4 text-kiniela-gold animate-bounce-subtle" />
+            <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full bg-kiniela-vinotinto/40 border border-kiniela-gold/40 text-kiniela-gold-light text-[11px] sm:text-sm font-semibold mb-3 sm:mb-5 shadow-brand-vinotinto animate-fadeIn">
+              <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-kiniela-gold animate-bounce-subtle" />
               <span className="uppercase tracking-wider">{edition.edition_number || 'Jornada Deportiva'}</span>
               <span className="w-1.5 h-1.5 rounded-full bg-kiniela-gold"></span>
               <span className="text-white">Pronósticos Oficiales</span>
             </div>
 
             {/* Título Principal Dinámico de la Kiniela */}
-            <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-white uppercase max-w-4xl leading-tight font-rockwell">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-7xl font-extrabold tracking-tight text-white uppercase max-w-4xl leading-tight font-rockwell">
               {edition.title || 'KINIELA MILLONARIA'}
             </h1>
 
             {/* Subtítulo Persuasivo */}
-            <p className="mt-3 text-sm sm:text-base md:text-lg lg:text-xl text-slate-300 max-w-2xl font-normal leading-relaxed px-2">
+            <p className="mt-2 text-xs sm:text-base md:text-lg lg:text-xl text-slate-300 max-w-2xl font-normal leading-relaxed px-1 sm:px-2">
               La emoción del fútbol nacional e internacional en una sola cartelera. Pronostica cada jornada, 
               sigue los marcadores en tiempo real y sé el próximo en levantar el trofeo.
             </p>
 
             {/* Contador Regresivo en Vivo */}
-            <div className="mt-6 sm:mt-7 w-full max-w-2xl bg-kiniela-navy-deep/80 border border-kiniela-navy-border/80 rounded-2xl p-4 sm:p-6 backdrop-blur-md shadow-2xl">
-              <div className="flex items-center justify-center gap-2 mb-3 sm:mb-4 text-slate-300 text-xs sm:text-sm uppercase font-semibold tracking-wider">
-                <Clock className="w-4 h-4 text-kiniela-gold animate-spin-slow" />
+            <div className="mt-4 sm:mt-7 w-full max-w-2xl bg-kiniela-navy-deep/80 border border-kiniela-navy-border/80 rounded-xl sm:rounded-2xl p-3 sm:p-6 backdrop-blur-md shadow-2xl">
+              <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-2.5 sm:mb-4 text-slate-300 text-[11px] sm:text-sm uppercase font-semibold tracking-wider">
+                <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-kiniela-gold animate-spin-slow" />
                 <span>Tiempo restante para el cierre de jugadas</span>
               </div>
 
               {timeLeft.isExpired ? (
-                <div className="py-3 text-center">
-                  <span className="inline-block px-4 py-2 bg-kiniela-vinotinto text-white rounded-lg font-bold text-sm sm:text-base animate-pulse">
+                <div className="py-2 sm:py-3 text-center">
+                  <span className="inline-block px-3 py-1.5 sm:px-4 sm:py-2 bg-kiniela-vinotinto text-white rounded-lg font-bold text-xs sm:text-base animate-pulse">
                     ¡CIERRE DE RECEPCIÓN COMPLETADO! PARTIDOS EN DISPUTA
                   </span>
                 </div>
               ) : (
-                <div className="grid grid-cols-4 gap-2 sm:gap-4" suppressHydrationWarning>
+                <div className="grid grid-cols-4 gap-1.5 sm:gap-4" suppressHydrationWarning>
                   {/* Días */}
-                  <div className="flex flex-col items-center justify-center p-2 sm:p-4 rounded-xl bg-kiniela-navy-card border border-kiniela-navy-border/60">
-                    <span suppressHydrationWarning className="text-xl sm:text-3xl md:text-4xl font-extrabold text-kiniela-gold tracking-tight font-mono">
+                  <div className="flex flex-col items-center justify-center p-1.5 sm:p-4 rounded-lg sm:rounded-xl bg-kiniela-navy-card border border-kiniela-navy-border/60">
+                    <span suppressHydrationWarning className="text-lg sm:text-3xl md:text-4xl font-extrabold text-kiniela-gold tracking-tight font-mono">
                       {mounted ? String(timeLeft.days).padStart(2, '0') : '00'}
                     </span>
-                    <span className="text-[10px] sm:text-xs uppercase text-slate-400 font-medium mt-1">Días</span>
+                    <span className="text-[9px] sm:text-xs uppercase text-slate-400 font-medium mt-0.5 sm:mt-1">Días</span>
                   </div>
 
                   {/* Horas */}
-                  <div className="flex flex-col items-center justify-center p-2 sm:p-4 rounded-xl bg-kiniela-navy-card border border-kiniela-navy-border/60">
-                    <span suppressHydrationWarning className="text-xl sm:text-3xl md:text-4xl font-extrabold text-kiniela-gold tracking-tight font-mono">
+                  <div className="flex flex-col items-center justify-center p-1.5 sm:p-4 rounded-lg sm:rounded-xl bg-kiniela-navy-card border border-kiniela-navy-border/60">
+                    <span suppressHydrationWarning className="text-lg sm:text-3xl md:text-4xl font-extrabold text-kiniela-gold tracking-tight font-mono">
                       {mounted ? String(timeLeft.hours).padStart(2, '0') : '00'}
                     </span>
-                    <span className="text-[10px] sm:text-xs uppercase text-slate-400 font-medium mt-1">Horas</span>
+                    <span className="text-[9px] sm:text-xs uppercase text-slate-400 font-medium mt-0.5 sm:mt-1">Horas</span>
                   </div>
 
                   {/* Minutos */}
-                  <div className="flex flex-col items-center justify-center p-2 sm:p-4 rounded-xl bg-kiniela-navy-card border border-kiniela-navy-border/60">
-                    <span suppressHydrationWarning className="text-xl sm:text-3xl md:text-4xl font-extrabold text-kiniela-gold tracking-tight font-mono">
+                  <div className="flex flex-col items-center justify-center p-1.5 sm:p-4 rounded-lg sm:rounded-xl bg-kiniela-navy-card border border-kiniela-navy-border/60">
+                    <span suppressHydrationWarning className="text-lg sm:text-3xl md:text-4xl font-extrabold text-kiniela-gold tracking-tight font-mono">
                       {mounted ? String(timeLeft.minutes).padStart(2, '0') : '00'}
                     </span>
-                    <span className="text-[10px] sm:text-xs uppercase text-slate-400 font-medium mt-1">Min</span>
+                    <span className="text-[9px] sm:text-xs uppercase text-slate-400 font-medium mt-0.5 sm:mt-1">Min</span>
                   </div>
 
                   {/* Segundos */}
-                  <div className="flex flex-col items-center justify-center p-2 sm:p-4 rounded-xl bg-kiniela-navy-card border border-kiniela-navy-border/60">
-                    <span suppressHydrationWarning className="text-xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight font-mono animate-pulse">
+                  <div className="flex flex-col items-center justify-center p-1.5 sm:p-4 rounded-lg sm:rounded-xl bg-kiniela-navy-card border border-kiniela-navy-border/60">
+                    <span suppressHydrationWarning className="text-lg sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight font-mono animate-pulse">
                       {mounted ? String(timeLeft.seconds).padStart(2, '0') : '00'}
                     </span>
-                    <span className="text-[10px] sm:text-xs uppercase text-slate-400 font-medium mt-1">Seg</span>
+                    <span className="text-[9px] sm:text-xs uppercase text-slate-400 font-medium mt-0.5 sm:mt-1">Seg</span>
                   </div>
                 </div>
               )}
             </div>
 
             {/* Tarjetas Destacadas de Precio del Ticket y Monto del Premio */}
-            <div id="premios" className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 w-full max-w-3xl scroll-mt-24">
+            <div id="premios" className="mt-6 sm:mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-6 w-full max-w-3xl scroll-mt-24">
               
               {/* Tarjeta: Pozo de Premio Acumulado en Bs */}
-              <div className="relative group overflow-hidden rounded-2xl p-5 sm:p-7 bg-gradient-to-br from-kiniela-vinotinto/60 via-kiniela-navy-card to-kiniela-navy-deep border-2 border-kiniela-gold/60 shadow-brand-gold transition-transform duration-300 hover:scale-[1.02]">
+              <div className="relative group overflow-hidden rounded-xl sm:rounded-2xl p-4 sm:p-7 bg-gradient-to-br from-kiniela-vinotinto/60 via-kiniela-navy-card to-kiniela-navy-deep border-2 border-kiniela-gold/60 shadow-brand-gold transition-transform duration-300 hover:scale-[1.02]">
                 <div className="absolute top-0 right-0 p-4 opacity-15 group-hover:opacity-30 transition-opacity">
                   <Trophy className="w-20 sm:w-24 h-20 sm:h-24 text-kiniela-gold" />
                 </div>

@@ -117,15 +117,6 @@ export const Footer: React.FC = () => {
 
           <div className="flex items-center gap-4">
             <span className="text-slate-500">Hecho para la afición venezolana</span>
-            <span>•</span>
-            <Link
-              href="/admin"
-              className="inline-flex items-center gap-1 text-slate-500 hover:text-kiniela-gold transition-colors py-1 px-2 rounded hover:bg-white/5"
-              title="Panel Administrativo"
-            >
-              <Lock className="w-3 h-3" />
-              <span>Gestión / Admin</span>
-            </Link>
           </div>
         </div>
 

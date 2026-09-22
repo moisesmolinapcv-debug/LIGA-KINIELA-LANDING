@@ -43,7 +43,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-kiniela-navy text-white flex flex-col selection:bg-kiniela-gold selection:text-kiniela-navy relative pb-20 lg:pb-0">
+    <div className="min-h-screen bg-kiniela-navy text-white flex flex-col selection:bg-kiniela-gold selection:text-kiniela-navy relative pb-32 sm:pb-36 lg:pb-0 overflow-x-hidden max-w-full">
       {/* Navegación superior oficial */}
       <Navbar />
 

@@ -105,10 +105,10 @@ export const HeroBillboardSlider: React.FC<HeroBillboardSliderProps> = ({ slides
         onTouchEnd={handleTouchEnd}
       >
         {/* Contenedor de Proporción Responsiva:
-            - En Móvil: aspect-[4/5] o h-[380px] para arte vertical completo
-            - En Tablet: aspect-[16/9] o h-[360px]
-            - En Escritorio: aspect-[21/8] o h-[420px] panorámico */}
-        <div className="relative w-full aspect-[4/5] sm:aspect-[16/8] lg:aspect-[21/8] min-h-[360px] sm:min-h-[320px] lg:min-h-[380px] max-h-[500px]">
+            - En Móvil: aspect-[16/10] min-h-[200px] max-h-[250px] compacto y atlético
+            - En Tablet: aspect-[16/8] min-h-[300px]
+            - En Escritorio: aspect-[21/8] min-h-[380px] max-h-[500px] panorámico */}
+        <div className="relative w-full aspect-[16/10] sm:aspect-[16/8] lg:aspect-[21/8] min-h-[200px] max-h-[250px] sm:min-h-[300px] sm:max-h-[500px] lg:min-h-[380px]">
           {activeSlides.map((slide, idx) => {
             const isActive = idx === currentIndex;
             return (
@@ -139,42 +139,42 @@ export const HeroBillboardSlider: React.FC<HeroBillboardSliderProps> = ({ slides
                 </picture>
 
                 {/* Viñeta degradada protectora sutil */}
-                <div className="absolute inset-0 bg-gradient-to-t from-[#00063E]/90 via-[#00063E]/25 to-transparent pointer-events-none" />
-                <div className="absolute inset-0 bg-gradient-to-r from-[#00063E]/60 via-transparent to-[#00063E]/40 pointer-events-none hidden sm:block" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#00063E]/95 via-[#00063E]/30 to-transparent pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-r from-[#00063E]/70 via-transparent to-[#00063E]/40 pointer-events-none hidden sm:block" />
 
                 {/* Contenido Comercial Sobrepuesto */}
-                <div className="absolute inset-0 p-5 sm:p-8 md:p-10 flex flex-col justify-between z-10 pointer-events-none">
+                <div className="absolute inset-0 p-3 sm:p-6 md:p-10 flex flex-col justify-between z-10 pointer-events-none">
                   {/* Badge Superior */}
                   <div className="flex items-center justify-between pointer-events-auto">
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#00063E]/80 backdrop-blur-md border border-[#FFAF3F]/50 text-[#FFAF3F] text-[10px] sm:text-xs font-black uppercase tracking-wider shadow-md">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-[#00063E]/85 backdrop-blur-md border border-[#FFAF3F]/50 text-[#FFAF3F] text-[9px] sm:text-xs font-black uppercase tracking-wider shadow-md">
                       <Sparkles className="w-3 h-3 text-[#FFAF3F]" />
                       <span>Promoción Oficial</span>
                     </div>
 
                     {/* Indicador de número de banner */}
                     {total > 1 && (
-                      <span className="text-[10px] sm:text-xs font-mono font-bold text-slate-300 bg-[#000428]/80 backdrop-blur-md px-2.5 py-0.5 rounded-full border border-white/10">
+                      <span className="text-[9px] sm:text-xs font-mono font-bold text-slate-300 bg-[#000428]/85 backdrop-blur-md px-2 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full border border-white/10">
                         {currentIndex + 1} / {total}
                       </span>
                     )}
                   </div>
 
                   {/* Bloque Inferior: Título y Botón de Acción Táctil */}
-                  <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 pointer-events-auto">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-2 sm:gap-4 pointer-events-auto">
                     <div className="max-w-xl">
-                      <h3 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-white uppercase tracking-tight font-rockwell leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
+                      <h3 className="text-sm sm:text-2xl md:text-3xl lg:text-4xl font-black text-white uppercase tracking-tight font-rockwell leading-snug sm:leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] line-clamp-2 sm:line-clamp-none">
                         {slide.title}
                       </h3>
                     </div>
 
-                    {/* Botón CTA Comercial de Alta Conversión (Informativo, hace scroll a sección) */}
+                    {/* Botón CTA Comercial de Alta Conversión */}
                     <button
                       type="button"
                       onClick={() => handleActionClick(slide.target_section)}
-                      className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-[#FFAF3F] to-[#ff9e1f] hover:from-[#ff9e1f] hover:to-[#FFAF3F] text-[#00063E] font-black text-xs sm:text-sm uppercase tracking-wider shadow-[0_4px_20px_rgba(255,175,63,0.45)] hover:shadow-[0_6px_25px_rgba(255,175,63,0.6)] transition-all duration-300 hover:scale-105 active:scale-95 flex-shrink-0 min-h-[44px]"
+                      className="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3.5 py-1.5 sm:px-6 sm:py-3 rounded-lg sm:rounded-xl bg-gradient-to-r from-[#FFAF3F] to-[#ff9e1f] hover:from-[#ff9e1f] hover:to-[#FFAF3F] text-[#00063E] font-black text-[11px] sm:text-sm uppercase tracking-wider shadow-[0_4px_20px_rgba(255,175,63,0.45)] hover:shadow-[0_6px_25px_rgba(255,175,63,0.6)] transition-all duration-300 hover:scale-105 active:scale-95 flex-shrink-0 min-h-[34px] sm:min-h-[44px]"
                     >
                       <span>{slide.button_text || 'Ver Partidos →'}</span>
-                      <ArrowRight className="w-4 h-4" />
+                      <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </button>
                   </div>
                 </div>
