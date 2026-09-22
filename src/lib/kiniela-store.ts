@@ -6,7 +6,7 @@ const LOCAL_STORAGE_KEY = 'liga_kiniela_store_v1';
 export const KINIELA_UPDATE_EVENT = 'kiniela_update';
 
 export const DEFAULT_COPYS: SiteCopys = {
-  hero_title: 'KINIELA MILLONARIA - UEFA NATIONS',
+  hero_title: 'KINIELA MILLONARIA',
   hero_subtitle: 'La emoción del fútbol nacional e internacional en una sola cartelera. Pronostica cada jornada, sigue los marcadores en tiempo real y sé el próximo en levantar el trofeo.',
   hero_badge_tag: 'Pronósticos Oficiales',
   hero_countdown_label: 'Tiempo restante para el cierre de jugadas',
@@ -96,8 +96,8 @@ export const getDefaultSeed = (): KinielaDataState => {
   return {
     edition: {
       id: 'f5141dac-6248-48d8-9626-0ae9cce4c3fe',
-      title: 'KINIELA MILLONARIA - UEFA NATIONS',
-      edition_number: 'Edición #25',
+      title: 'KINIELA MILLONARIA',
+      edition_number: 'Edición Activa',
       ticket_price_usd: 0,
       ticket_price_bs: 1000,
       prize_amount_usd: 0,
