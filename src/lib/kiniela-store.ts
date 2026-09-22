@@ -6,26 +6,59 @@ const LOCAL_STORAGE_KEY = 'liga_kiniela_store_v1';
 export const KINIELA_UPDATE_EVENT = 'kiniela_update';
 
 // Configuración de Supabase
-const rawSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const rawSupabaseUrl = (
+  process.env.NEXT_PUBLIC_SUPABASE_URL ||
+  'https://jktczyeazlzmcedkfmhi.supabase.co'
+)
+  .trim()
+  .replace(/^['"]|['"]$/g, '');
+
 const supabaseUrl = rawSupabaseUrl.replace(/\/rest\/v1\/?$/, '').replace(/\/$/, '');
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+const supabaseAnonKey = (
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImprdGN6eWVhemx6bWNlZGtmbWhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwODAwMTgsImV4cCI6MjEwNTY1NjAxOH0.0dXHtQ03cEkIm1Vyjq4Glx3IUSiEaWJbk_JdkaON4k4'
+)
+  .trim()
+  .replace(/^['"]|['"]$/g, '');
 
 export const isSupabaseConfigured = (): boolean => {
   return (
     typeof supabaseUrl === 'string' &&
     supabaseUrl.startsWith('https://') &&
     !supabaseUrl.includes('your-project') &&
-    !supabaseUrl.includes('tu-proyecto') &&
     typeof supabaseAnonKey === 'string' &&
-    supabaseAnonKey.length > 20 &&
-    !supabaseAnonKey.includes('tu-anon')
+    supabaseAnonKey.length > 20
   );
+};
+
+export const getSupabase = (): SupabaseClient | null => {
+  if (supabaseInstance) return supabaseInstance;
+  if (isSupabaseConfigured()) {
+    try {
+      supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+      });
+      return supabaseInstance;
+    } catch (error) {
+      console.warn('[LigaKiniela] Error al inicializar cliente Supabase:', error);
+    }
+  }
+  return null;
 };
 
 let supabaseInstance: SupabaseClient | null = null;
 if (isSupabaseConfigured()) {
   try {
-    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
+    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    });
   } catch (error) {
     console.warn('[LigaKiniela] Error al inicializar cliente Supabase:', error);
   }
@@ -34,19 +67,18 @@ if (isSupabaseConfigured()) {
 // Semilla inicial por defecto (Seed Data)
 export const getDefaultSeed = (): KinielaDataState => {
   const now = new Date();
-  const endDate = new Date(now.getTime() + (3 * 24 + 14) * 60 * 60 * 1000); // 3 días y 14 horas
 
   return {
     edition: {
-      id: 'edition-default-24',
-      title: 'KINIELA MILLONARIA',
-      edition_number: 'Edición Especial #24',
+      id: 'f5141dac-6248-48d8-9626-0ae9cce4c3fe',
+      title: 'KINIELA MILLONARIA - UEFA NATIONS',
+      edition_number: 'Edición #25',
       ticket_price_usd: 0,
       ticket_price_bs: 1000,
       prize_amount_usd: 0,
       prize_amount_bs: 1500000,
       start_date: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(),
-      end_date: endDate.toISOString(),
+      end_date: '2026-09-27T14:45:00-04:00',
       is_active: true,
       created_at: now.toISOString(),
     },
@@ -375,13 +407,14 @@ export const subscribeToKiniela = (callback: (data: KinielaDataState) => void): 
  * Prioriza Supabase si está disponible; de lo contrario o ante falla, devuelve LocalStorage.
  */
 export const getKinielaData = async (): Promise<KinielaDataState> => {
-  if (supabaseInstance) {
+  const client = getSupabase();
+  if (client) {
     try {
       const [editionsRes, matchesRes, winnersRes, bannersRes] = await Promise.all([
-        supabaseInstance.from('kiniela_editions').select('*').eq('is_active', true).order('created_at', { ascending: false }).limit(1),
-        supabaseInstance.from('matches').select('*').order('sort_order', { ascending: true }),
-        supabaseInstance.from('winners').select('*').order('created_at', { ascending: false }),
-        supabaseInstance.from('banners').select('*').eq('is_active', true).order('sort_order', { ascending: true }),
+        client.from('kiniela_editions').select('*').eq('is_active', true).order('created_at', { ascending: false }).limit(1),
+        client.from('matches').select('*').order('sort_order', { ascending: true }),
+        client.from('winners').select('*').order('created_at', { ascending: false }),
+        client.from('banners').select('*').eq('is_active', true).order('sort_order', { ascending: true }),
       ]);
 
       const hasEdition = editionsRes.data && editionsRes.data.length > 0;
@@ -428,9 +461,10 @@ export const updateEdition = async (editionUpdate: Partial<KinielaEdition>): Pro
     ...editionUpdate,
   };
 
-  if (supabaseInstance && updatedEdition.id) {
+  const client = getSupabase();
+  if (client && updatedEdition.id) {
     try {
-      const { data, error } = await supabaseInstance
+      const { data, error } = await client
         .from('kiniela_editions')
         .update(editionUpdate)
         .eq('id', updatedEdition.id)
