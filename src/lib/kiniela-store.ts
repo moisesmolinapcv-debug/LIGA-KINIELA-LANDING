@@ -6,21 +6,19 @@ const LOCAL_STORAGE_KEY = 'liga_kiniela_store_v1';
 export const KINIELA_UPDATE_EVENT = 'kiniela_update';
 
 // Configuración de Supabase
-const rawSupabaseUrl = (
-  process.env.NEXT_PUBLIC_SUPABASE_URL ||
-  'https://jktczyeazlzmcedkfmhi.supabase.co'
-)
-  .trim()
-  .replace(/^['"]|['"]$/g, '');
+const envUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim().replace(/^['"]|['"]$/g, '');
+const rawSupabaseUrl =
+  envUrl && !envUrl.includes('tu-proyecto') && !envUrl.includes('your-project')
+    ? envUrl
+    : 'https://jktczyeazlzmcedkfmhi.supabase.co';
 
 const supabaseUrl = rawSupabaseUrl.replace(/\/rest\/v1\/?$/, '').replace(/\/$/, '');
 
-const supabaseAnonKey = (
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImprdGN6eWVhemx6bWNlZGtmbWhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwODAwMTgsImV4cCI6MjEwNTY1NjAxOH0.0dXHtQ03cEkIm1Vyjq4Glx3IUSiEaWJbk_JdkaON4k4'
-)
-  .trim()
-  .replace(/^['"]|['"]$/g, '');
+const envKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim().replace(/^['"]|['"]$/g, '');
+const supabaseAnonKey =
+  envKey && !envKey.includes('tu-anon') && envKey.length > 20
+    ? envKey
+    : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImprdGN6eWVhemx6bWNlZGtmbWhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwODAwMTgsImV4cCI6MjEwNTY1NjAxOH0.0dXHtQ03cEkIm1Vyjq4Glx3IUSiEaWJbk_JdkaON4k4';
 
 export const isSupabaseConfigured = (): boolean => {
   return (
