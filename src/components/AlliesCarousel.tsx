@@ -49,7 +49,7 @@ export const ALLIES_LIST: Ally[] = [
   {
     name: 'Juega En Linea',
     url: 'https://www.juegaenlinea.com',
-    logo: 'https://www.juegaenlinea.com/img/logo.png',
+    logo: '/allies/juega-en-linea.svg',
     featured: true,
   },
   {
