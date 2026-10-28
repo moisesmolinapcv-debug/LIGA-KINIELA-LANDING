@@ -1,6 +1,13 @@
 import type { Metadata, Viewport } from 'next';
-import { Poppins } from 'next/font/google';
+import { Poppins, Roboto_Slab } from 'next/font/google';
 import './globals.css';
+
+// Respaldo libre de Rockwell (Apache-2.0) hasta contar con licencia web (Plan v4, P4)
+const robotoSlab = Roboto_Slab({
+  subsets: ['latin'],
+  variable: '--font-slab',
+  display: 'swap',
+});
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -61,7 +68,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className={`${poppins.variable} scroll-smooth`} suppressHydrationWarning>
+    <html lang="es" className={`${poppins.variable} ${robotoSlab.variable} scroll-smooth`} suppressHydrationWarning>
       <body className="bg-kiniela-navy text-white min-h-screen antialiased selection:bg-kiniela-gold selection:text-kiniela-navy" suppressHydrationWarning>
         {children}
       </body>

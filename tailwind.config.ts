@@ -32,8 +32,26 @@ const config: Config = {
         },
       },
       fontFamily: {
-        rockwell: ["'Rockwell'", "'Rockwell Nova'", "'Clarendon'", "Georgia", "serif"],
+        rockwell: ["'Rockwell'", "'Rockwell Nova'", "var(--font-slab)", "'Clarendon'", "Georgia", "serif"],
         poppins: ["var(--font-poppins)", "'Poppins'", "sans-serif"],
+      },
+      transitionTimingFunction: {
+        // Curvas del sistema de movimiento "La Taquilla"
+        stamp: "cubic-bezier(0.3, 1.6, 0.5, 1)",
+        flap: "cubic-bezier(0.45, 0, 0.2, 1)",
+        out: "cubic-bezier(0.16, 1, 0.3, 1)",
+      },
+      transitionDuration: {
+        tap: "140ms",
+        flip: "420ms",
+        reveal: "700ms",
+      },
+      minHeight: { tap: "44px", casilla: "48px" },
+      minWidth: { tap: "44px", casilla: "48px" },
+      backgroundImage: {
+        "stadium-night": "radial-gradient(120% 80% at 50% 0%, #0c186b 0%, #00063E 45%, #000428 100%)",
+        "gold-foil": "linear-gradient(135deg, #ffd58a 0%, #FFAF3F 45%, #c9791c 100%)",
+        "pitch-lines": "repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0 2px, transparent 2px 64px)",
       },
       boxShadow: {
         'brand-gold': '0 0 25px -5px rgba(255, 175, 63, 0.4)',
