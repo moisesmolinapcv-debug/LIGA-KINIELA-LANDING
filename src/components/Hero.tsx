@@ -1,224 +1,356 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { KinielaEdition, BannerSlide, SiteCopys } from '../types/kiniela';
-import { formatBs } from '../lib/kiniela-store';
+import React from 'react';
+import { ArrowDown, RefreshCw } from 'lucide-react';
+import type { BannerSlide } from '../types/kiniela';
+import type { Kiniela, KinielaStatus } from '../types/kinielas';
+import {
+  getRemaining,
+  formatDateVE,
+  formatTimeVE,
+} from '../lib/kinielas/time';
+import { ESTADOS_KINIELA, FICHA, HORARIOS, HORA_VENEZUELA, MARCA } from '../content/copys';
 import { HeroBillboardSlider } from './HeroBillboardSlider';
-import { Trophy, Ticket, Flame, Clock, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { StadiumBackdrop } from './taquilla/StadiumBackdrop';
+import { KiniMascot } from './taquilla/KiniMascot';
+import { StatusPill } from './taquilla/StatusPill';
+import { FlapNumber } from './taquilla/FlapNumber';
+import { FlapClock } from './taquilla/FlapClock';
+import { SplitFlap } from './taquilla/SplitFlap';
+import { formatMiles, useNow } from './taquilla/hooks';
+import { useKinielasContext } from './taquilla/KinielasProvider';
 
 interface HeroProps {
-  edition: KinielaEdition;
+  /** Banners del admin. Se muestran debajo del hero principal solo si hay activos. */
   slides?: BannerSlide[];
-  copys?: SiteCopys;
 }
 
-interface TimeRemaining {
-  days: number;
-  hours: number;
-  minutes: number;
-  seconds: number;
-  isExpired: boolean;
+const PAD_FOR_KINI = 'max-lg:pr-24';
+
+/** Lleva al boleto de práctica; mientras #boleto no exista, al siguiente bloque (#partidos). */
+function goToTicket(e: React.MouseEvent<HTMLAnchorElement>) {
+  const target = document.getElementById('boleto') ?? document.getElementById('partidos');
+  if (!target) return;
+  e.preventDefault();
+  target.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-export const Hero: React.FC<HeroProps> = ({ edition, slides = [], copys }) => {
-  const [mounted, setMounted] = useState(false);
-  const [timeLeft, setTimeLeft] = useState<TimeRemaining>({
-    days: 0,
-    hours: 0,
-    minutes: 0,
-    seconds: 0,
-    isExpired: false,
-  });
+/** "actualizado hace 3 min" */
+function timeAgo(iso: string | undefined, now: Date | null): string {
+  const t = iso ? new Date(iso).getTime() : NaN;
+  if (!now || Number.isNaN(t)) return '';
+  const s = Math.max(0, Math.floor((now.getTime() - t) / 1000));
+  if (s < 60) return 'unos segundos';
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h} h`;
+  return `${Math.floor(h / 24)} d`;
+}
 
-  useEffect(() => {
-    setMounted(true);
-    const calculateTime = () => {
-      const targetTime = new Date(edition.end_date).getTime();
-      const now = new Date().getTime();
-      const difference = targetTime - now;
+const hasWarning = (k: Kiniela, re: RegExp) => k.warnings.some((w) => re.test(w));
 
-      if (difference <= 0) {
-        setTimeLeft({
-          days: 0,
-          hours: 0,
-          minutes: 0,
-          seconds: 0,
-          isExpired: true,
-        });
-        return;
-      }
+export const Hero: React.FC<HeroProps> = ({ slides = [] }) => {
+  // Estado compartido con el boleto: una sola llamada a useKinielas() en el proveedor.
+  const { data, kinielas, selected, setSelected, statusOf, loading, error, stale, refresh } = useKinielasContext();
+  const now = useNow(1000);
 
-      const days = Math.floor(difference / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((difference % (1000 * 60)) / 1000);
-
-      setTimeLeft({ days, hours, minutes, seconds, isExpired: false });
-    };
-
-    calculateTime();
-    const timer = setInterval(calculateTime, 1000);
-    return () => clearInterval(timer);
-  }, [edition.end_date]);
+  let body: React.ReactNode;
+  if (!data && loading) {
+    body = <HeroLoading />;
+  } else if (!data) {
+    body = <HeroError message={error} onRetry={refresh} />;
+  } else if (!selected) {
+    body = <HeroEmpty />;
+  } else {
+    body = (
+      <HeroBody
+        kiniela={selected}
+        status={statusOf(selected)}
+        now={now}
+        list={kinielas}
+        onSelect={setSelected}
+        statusOf={statusOf}
+        staleText={stale ? timeAgo(data.fetchedAt, now) : ''}
+      />
+    );
+  }
 
   return (
-    <section id="inicio" className="relative pt-20 pb-12 sm:pt-28 sm:pb-16 md:pt-32 md:pb-20 overflow-hidden bg-gradient-to-b from-kiniela-navy-deep via-kiniela-navy to-kiniela-navy-deep scroll-mt-20">
-      {/* Luces de fondo y resplandores de estadio */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[350px] bg-kiniela-vinotinto/20 blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute top-10 right-10 w-96 h-96 bg-kiniela-gold/10 blur-[130px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-0 left-10 w-80 h-80 bg-kiniela-navy-cardLight/20 blur-[100px] rounded-full pointer-events-none" />
+    <section id="inicio" className="relative isolate scroll-mt-20">
+      <StadiumBackdrop />
+      <div className="relative z-10 pb-8 pt-24 sm:pt-28 lg:pb-14 lg:pt-32">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">{body}</div>
 
-      {/* Trama sutil deportiva */}
-      <div className="absolute inset-0 bg-[radial-gradient(rgba(255,175,63,0.04)_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none opacity-50" />
-
-      <div className="relative z-10">
-        
-        {/* ========================================================================= */}
-        {/* 1. HERO BILLBOARD SLIDER (CARRUSEL PUBLICITARIO ESTILO SELLATUPARLEY)     */}
-        {/* ========================================================================= */}
-        <HeroBillboardSlider slides={slides} />
-
-        <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8">
-          <div className="flex flex-col items-center text-center">
-            
-            {/* Badge superior de edición activa */}
-            <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full bg-kiniela-vinotinto/40 border border-kiniela-gold/40 text-kiniela-gold-light text-[11px] sm:text-sm font-semibold mb-3 sm:mb-5 shadow-brand-vinotinto animate-fadeIn">
-              <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-kiniela-gold animate-bounce-subtle" />
-              <span className="uppercase tracking-wider">{edition.edition_number || 'Jornada Deportiva'}</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-kiniela-gold"></span>
-              <span className="text-white">{copys?.hero_badge_tag || 'Pronósticos Oficiales'}</span>
-            </div>
-
-            {/* Título Principal Dinámico de la Kiniela */}
-            <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-7xl font-extrabold tracking-tight text-white uppercase max-w-4xl leading-tight font-rockwell">
-              {copys?.hero_title || edition.title || 'KINIELA MILLONARIA'}
-            </h1>
-
-            {/* Subtítulo Persuasivo */}
-            <p className="mt-2 text-xs sm:text-base md:text-lg lg:text-xl text-slate-300 max-w-2xl font-normal leading-relaxed px-1 sm:px-2">
-              {copys?.hero_subtitle || 'La emoción del fútbol nacional e internacional en una sola cartelera. Pronostica cada jornada, sigue los marcadores en tiempo real y sé el próximo en levantar el trofeo.'}
-            </p>
-
-            {/* Contador Regresivo en Vivo */}
-            <div className="mt-4 sm:mt-7 w-full max-w-2xl bg-kiniela-navy-deep/80 border border-kiniela-navy-border/80 rounded-xl sm:rounded-2xl p-3 sm:p-6 backdrop-blur-md shadow-2xl">
-              <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-2.5 sm:mb-4 text-slate-300 text-[11px] sm:text-sm uppercase font-semibold tracking-wider">
-                <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-kiniela-gold animate-spin-slow" />
-                <span>{copys?.hero_countdown_label || 'Tiempo restante para el cierre de jugadas'}</span>
-              </div>
-
-              {timeLeft.isExpired ? (
-                <div className="py-2 sm:py-3 text-center">
-                  <span className="inline-block px-3 py-1.5 sm:px-4 sm:py-2 bg-kiniela-vinotinto text-white rounded-lg font-bold text-xs sm:text-base animate-pulse">
-                    ¡CIERRE DE RECEPCIÓN COMPLETADO! PARTIDOS EN DISPUTA
-                  </span>
-                </div>
-              ) : (
-                <div className="grid grid-cols-4 gap-1.5 sm:gap-4" suppressHydrationWarning>
-                  {/* Días */}
-                  <div className="flex flex-col items-center justify-center p-1.5 sm:p-4 rounded-lg sm:rounded-xl bg-kiniela-navy-card border border-kiniela-navy-border/60">
-                    <span suppressHydrationWarning className="text-lg sm:text-3xl md:text-4xl font-extrabold text-kiniela-gold tracking-tight font-mono">
-                      {mounted ? String(timeLeft.days).padStart(2, '0') : '00'}
-                    </span>
-                    <span className="text-[9px] sm:text-xs uppercase text-slate-400 font-medium mt-0.5 sm:mt-1">Días</span>
-                  </div>
-
-                  {/* Horas */}
-                  <div className="flex flex-col items-center justify-center p-1.5 sm:p-4 rounded-lg sm:rounded-xl bg-kiniela-navy-card border border-kiniela-navy-border/60">
-                    <span suppressHydrationWarning className="text-lg sm:text-3xl md:text-4xl font-extrabold text-kiniela-gold tracking-tight font-mono">
-                      {mounted ? String(timeLeft.hours).padStart(2, '0') : '00'}
-                    </span>
-                    <span className="text-[9px] sm:text-xs uppercase text-slate-400 font-medium mt-0.5 sm:mt-1">Horas</span>
-                  </div>
-
-                  {/* Minutos */}
-                  <div className="flex flex-col items-center justify-center p-1.5 sm:p-4 rounded-lg sm:rounded-xl bg-kiniela-navy-card border border-kiniela-navy-border/60">
-                    <span suppressHydrationWarning className="text-lg sm:text-3xl md:text-4xl font-extrabold text-kiniela-gold tracking-tight font-mono">
-                      {mounted ? String(timeLeft.minutes).padStart(2, '0') : '00'}
-                    </span>
-                    <span className="text-[9px] sm:text-xs uppercase text-slate-400 font-medium mt-0.5 sm:mt-1">Min</span>
-                  </div>
-
-                  {/* Segundos */}
-                  <div className="flex flex-col items-center justify-center p-1.5 sm:p-4 rounded-lg sm:rounded-xl bg-kiniela-navy-card border border-kiniela-navy-border/60">
-                    <span suppressHydrationWarning className="text-lg sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight font-mono animate-pulse">
-                      {mounted ? String(timeLeft.seconds).padStart(2, '0') : '00'}
-                    </span>
-                    <span className="text-[9px] sm:text-xs uppercase text-slate-400 font-medium mt-0.5 sm:mt-1">Seg</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Tarjetas Destacadas de Precio del Ticket y Monto del Premio */}
-            <div id="premios" className="mt-6 sm:mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-6 w-full max-w-3xl scroll-mt-24">
-              
-              {/* Tarjeta: Pozo de Premio Acumulado en Bs */}
-              <div className="relative group overflow-hidden rounded-xl sm:rounded-2xl p-4 sm:p-7 bg-gradient-to-br from-kiniela-vinotinto/60 via-kiniela-navy-card to-kiniela-navy-deep border-2 border-kiniela-gold/60 shadow-brand-gold transition-transform duration-300 hover:scale-[1.02]">
-                <div className="absolute top-0 right-0 p-4 opacity-15 group-hover:opacity-30 transition-opacity">
-                  <Trophy className="w-20 sm:w-24 h-20 sm:h-24 text-kiniela-gold" />
-                </div>
-                
-                <div className="flex items-center gap-2 text-kiniela-gold-light mb-1">
-                  <Trophy className="w-4 sm:w-5 h-4 sm:h-5 text-kiniela-gold flex-shrink-0" />
-                  <span className="text-xs sm:text-sm font-bold tracking-wider uppercase">{copys?.hero_prize_title || 'Gran Premio Acumulado'}</span>
-                </div>
-                
-                <div className="mt-2 text-2xl sm:text-4xl md:text-5xl font-black text-kiniela-gold tracking-tight glow-gold-text font-rockwell">
-                  {formatBs(edition.prize_amount_bs)}
-                </div>
-                
-                <p className="mt-1.5 text-xs sm:text-sm text-slate-200 font-semibold">
-                  {copys?.hero_prize_desc || 'Monto oficial garantizado para esta edición'}
-                </p>
-                
-                <div className="mt-4 flex items-center gap-2 text-[11px] sm:text-xs text-emerald-300 bg-emerald-950/50 border border-emerald-500/30 py-1 px-2.5 rounded-lg w-fit">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                  <span className="font-bold">Garantizado al 100% de aciertos</span>
-                </div>
-              </div>
-
-              {/* Tarjeta: Precio del Ticket en Bs */}
-              <div className="relative group overflow-hidden rounded-2xl p-5 sm:p-7 bg-gradient-to-br from-kiniela-navy-card via-kiniela-navy to-kiniela-navy-deep border-2 border-kiniela-navy-border hover:border-kiniela-gold/50 shadow-xl transition-transform duration-300 hover:scale-[1.02]">
-                <div className="absolute top-0 right-0 p-4 opacity-15 group-hover:opacity-30 transition-opacity">
-                  <Ticket className="w-20 sm:w-24 h-20 sm:h-24 text-white" />
-                </div>
-                
-                <div className="flex items-center gap-2 text-slate-300 mb-1">
-                  <Ticket className="w-4 sm:w-5 h-4 sm:h-5 text-kiniela-gold flex-shrink-0" />
-                  <span className="text-xs sm:text-sm font-bold tracking-wider uppercase">{copys?.hero_ticket_title || 'Precio del Ticket'}</span>
-                </div>
-                
-                <div className="mt-2 text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-tight font-rockwell">
-                  {formatBs(edition.ticket_price_bs)}
-                </div>
-                
-                <p className="mt-1.5 text-xs sm:text-sm text-slate-300 font-medium">
-                  {copys?.hero_ticket_desc || 'Valor por cada combinación pronosticada'}
-                </p>
-                
-                <div className="mt-4 flex items-center gap-2 text-[11px] sm:text-xs text-slate-200 bg-white/10 border border-white/15 py-1 px-2.5 rounded-lg w-fit">
-                  <span className="w-2 h-2 rounded-full bg-kiniela-gold animate-pulse flex-shrink-0"></span>
-                  <span className="font-medium">Costo único por jugada</span>
-                </div>
-              </div>
-
-            </div>
-
-            {/* Botón Informativo: Ver Cartelera */}
-            <div className="mt-8 sm:mt-9 flex flex-col sm:flex-row items-center justify-center gap-4">
-              <a
-                href="#partidos"
-                className="inline-flex items-center justify-center gap-3 px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl text-sm sm:text-base font-bold uppercase tracking-wider text-kiniela-navy bg-gradient-to-r from-kiniela-gold to-kiniela-gold-hover hover:from-kiniela-gold-hover hover:to-kiniela-gold text-center shadow-brand-gold transition-all duration-300 hover:scale-105 active:scale-95"
-              >
-                <span>Ver Cartelera de Partidos</span>
-                <ChevronDown className="w-5 h-5 animate-bounce" />
-              </a>
-            </div>
-
-          </div>
+        {/* Banners del admin: solo se renderiza si hay activos (el slider devuelve null si no). */}
+        <div className="mt-8">
+          <HeroBillboardSlider slides={slides} />
         </div>
-
       </div>
     </section>
   );
 };
+
+/* -------------------------------------------------------------------------- */
+
+interface BodyProps {
+  kiniela: Kiniela;
+  status: KinielaStatus;
+  now: Date | null;
+  list: Kiniela[];
+  onSelect: (id: number) => void;
+  statusOf: (k: Kiniela) => KinielaStatus;
+  staleText: string;
+}
+
+function HeroBody({ kiniela: k, status, now, list, onSelect, statusOf, staleText }: BodyProps) {
+  const prizeUnknown = (hasWarning(k, /prize_base_amount/) && !k.overrides?.prizeBs) || !(k.prizeBs > 0);
+  const ticketUnknown = hasWarning(k, /ticket_price/) && !k.overrides?.ticketPriceBs;
+  const datesUnknown = hasWarning(k, /sales_start|sales_finish/);
+
+  const target = status === 'proxima' ? k.salesStart : k.closesAt;
+  const remaining = now ? getRemaining(target, now) : null;
+  const multiple = list.length > 1;
+
+  const fmt = (iso: string) => `${formatDateVE(iso)}, ${formatTimeVE(iso)}`;
+  const scheduleLine =
+    status === 'proxima' ? `Abre el ${fmt(k.salesStart)}` : status === 'abierta' ? `Cierra el ${fmt(k.closesAt)}` : `Cerró el ${fmt(k.closesAt)}`;
+
+  const ticketLine = k.isFree
+    ? 'Edición gratuita · 1 ticket por usuario'
+    : ticketUnknown
+      ? 'Ticket: por confirmar'
+      : `Ticket ${formatMiles(k.ticketPriceBs)} Bs`;
+
+  const closed = status === 'cerrada';
+
+  return (
+    <div className="relative lg:grid lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:items-center lg:gap-12">
+      <div
+        className="min-w-0"
+        role={multiple ? 'tabpanel' : undefined}
+        id={multiple ? 'kiniela-panel' : undefined}
+        aria-labelledby={multiple ? `kt-${k.id}` : undefined}
+      >
+        {multiple && <KinielaTabs list={list} selectedId={k.id} onSelect={onSelect} statusOf={statusOf} />}
+
+        <div className={PAD_FOR_KINI}>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-kiniela-gold-light sm:text-xs">
+            {MARCA.eslogan}
+          </p>
+          <div className="mt-2">
+            <StatusPill status={status} />
+          </div>
+          <h1 className="mt-3 break-words font-rockwell text-[clamp(1.6rem,7.2vw,3.5rem)] font-extrabold uppercase leading-[1.05] text-white">
+            {k.name}
+          </h1>
+        </div>
+
+        {/* Premio total */}
+        <div id="premios" className="tq-case mt-5 scroll-mt-28 px-4 py-4 sm:px-6 sm:py-5">
+          <div className="flex items-baseline justify-between gap-3">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-kiniela-gold-light">{FICHA.premio}</p>
+            {staleText && (
+              <p className="text-[11px] text-slate-400">Datos de hace {staleText}: no pudimos actualizarlos.</p>
+            )}
+          </div>
+          {prizeUnknown ? (
+            <p className="mt-2 font-rockwell text-3xl font-extrabold text-kiniela-gold sm:text-5xl">Por confirmar</p>
+          ) : (
+            <div className="mt-2 flex items-end gap-2 text-[clamp(2rem,10.5vw,4.5rem)]">
+              <FlapNumber key={k.id} value={k.prizeBs} unit="Bs" />
+              <span aria-hidden="true" className="pb-[0.1em] font-rockwell text-[0.42em] font-extrabold leading-none text-kiniela-gold">
+                Bs
+              </span>
+            </div>
+          )}
+          <p className="mt-3 text-sm font-semibold text-white sm:text-base">{ticketLine}</p>
+        </div>
+
+        {/* Reloj */}
+        <div className="tq-case mt-3 px-3 py-4 sm:px-6 sm:py-5">
+          {!datesUnknown && !closed && (
+            <p className="mb-3 text-center text-xs font-bold uppercase tracking-[0.2em] text-kiniela-gold-light">
+              {ESTADOS_KINIELA[status].cuentaRegresiva}
+            </p>
+          )}
+          {datesUnknown ? (
+            <p className="text-center font-rockwell text-2xl font-extrabold text-white">{HORARIOS.porConfirmar}</p>
+          ) : closed ? (
+            <div className="flex justify-center text-[clamp(1.4rem,6.2vw,2.4rem)]">
+              <SplitFlap value="VENTA CERRADA" label={ESTADOS_KINIELA.cerrada.etiqueta} />
+            </div>
+          ) : (
+            <FlapClock remaining={remaining} className="text-[clamp(1.6rem,8.4vw,3rem)]" />
+          )}
+          {!datesUnknown && (
+            <div className="mt-4 text-center">
+              <p className="text-sm font-medium text-white">{scheduleLine}</p>
+              <p className="mt-0.5 text-xs text-slate-300">{HORA_VENEZUELA}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Acciones: una sola primaria */}
+        <div className="mt-5 flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-4">
+          {closed ? (
+            <>
+              <PrimaryCta href="#reglas" label="Ver cómo se juega" />
+              <a
+                href="#boleto"
+                onClick={goToTicket}
+                className="inline-flex min-h-tap items-center justify-center px-3 text-sm font-semibold text-kiniela-gold-light underline decoration-kiniela-gold/40 underline-offset-4 hover:text-white"
+              >
+                Probar mi boleto
+              </a>
+            </>
+          ) : (
+            <>
+              <PrimaryCta href="#boleto" label="Probar mi boleto" onClick={goToTicket} />
+              <a
+                href="#reglas"
+                className="inline-flex min-h-tap items-center justify-center px-3 text-sm font-semibold text-kiniela-gold-light underline decoration-kiniela-gold/40 underline-offset-4 hover:text-white"
+              >
+                Ver cómo se juega
+              </a>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Kini: junto al título en móvil, protagonista en escritorio */}
+      <div className={`absolute right-0 w-[84px] lg:static lg:flex lg:w-auto lg:justify-center ${multiple ? 'top-[3.75rem]' : 'top-0'}`}>
+        <div className="relative lg:w-[min(18rem,100%)] xl:w-[min(22rem,100%)]">
+          <span
+            aria-hidden="true"
+            className="absolute -inset-10 hidden lg:block"
+            style={{ background: 'radial-gradient(closest-side, rgba(255,213,138,0.16), transparent)' }}
+          />
+          <KiniMascot status={status} priority className="w-full" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PrimaryCta({ href, label, onClick }: { href: string; label: string; onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void }) {
+  return (
+    <a
+      id="hero-cta"
+      href={href}
+      onClick={onClick}
+      className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-gold-foil px-7 text-base font-bold text-kiniela-navy shadow-brand-glow transition-transform duration-tap ease-stamp active:scale-[0.97]"
+    >
+      {label}
+      <ArrowDown aria-hidden="true" className="h-4 w-4" />
+    </a>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+
+interface TabsProps {
+  list: Kiniela[];
+  selectedId: number;
+  onSelect: (id: number) => void;
+  statusOf: (k: Kiniela) => KinielaStatus;
+}
+
+function KinielaTabs({ list, selectedId, onSelect, statusOf }: TabsProps) {
+  const onKey = (e: React.KeyboardEvent, i: number) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    e.preventDefault();
+    const next = list[(i + (e.key === 'ArrowRight' ? 1 : -1) + list.length) % list.length];
+    onSelect(next.id);
+    document.getElementById(`kt-${next.id}`)?.focus();
+  };
+  return (
+    <div
+      role="tablist"
+      aria-label="Kinielas activas"
+      className="mb-4 flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+    >
+      {list.map((k, i) => {
+        const active = k.id === selectedId;
+        return (
+          <button
+            key={k.id}
+            id={`kt-${k.id}`}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            aria-controls="kiniela-panel"
+            tabIndex={active ? 0 : -1}
+            onClick={() => onSelect(k.id)}
+            onKeyDown={(e) => onKey(e, i)}
+            className={`min-h-tap shrink-0 rounded-full border px-4 text-sm font-semibold transition-colors ${
+              active
+                ? 'border-kiniela-gold bg-kiniela-gold text-kiniela-navy'
+                : 'border-white/25 bg-kiniela-navy-card text-white hover:border-kiniela-gold/60'
+            }`}
+          >
+            {k.name}
+            <span className="ml-2 text-[11px] font-bold uppercase tracking-wide opacity-80">
+              {ESTADOS_KINIELA[statusOf(k)].etiqueta}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+
+function HeroLoading() {
+  return (
+    <div aria-busy="true" aria-label="Cargando la Kiniela" className="relative lg:grid lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:gap-12">
+      <div className="min-w-0 space-y-3">
+        <div className="tq-sk h-3 w-52" />
+        <div className="tq-sk h-7 w-28 rounded-full" />
+        <div className="tq-sk h-10 w-3/4" />
+        <div className="tq-case mt-5 space-y-3 px-4 py-5">
+          <div className="tq-sk h-3 w-24" />
+          <div className="tq-sk h-14 w-full max-w-sm" />
+          <div className="tq-sk h-4 w-32" />
+        </div>
+        <div className="tq-case px-4 py-5">
+          <div className="tq-sk mx-auto h-12 w-full max-w-md" />
+        </div>
+        <div className="tq-sk h-[52px] w-56 rounded-xl" />
+      </div>
+      <div className="hidden lg:flex lg:justify-center">
+        <KiniMascot status="proxima" className="w-72 opacity-60" />
+      </div>
+    </div>
+  );
+}
+
+function HeroError({ message, onRetry }: { message: string | null; onRetry: () => void }) {
+  return (
+    <div role="alert" className="mx-auto flex max-w-md flex-col items-center text-center">
+      <KiniMascot status="cerrada" className="w-28" />
+      <h1 className="mt-4 font-rockwell text-2xl font-extrabold text-white sm:text-3xl">No pudimos cargar la Kiniela</h1>
+      <p className="mt-2 text-sm text-slate-300">Revisa tu conexión e inténtalo de nuevo.</p>
+      {message && <p className="mt-1 text-xs text-slate-500">{message}</p>}
+      <button
+        type="button"
+        onClick={onRetry}
+        className="mt-5 inline-flex min-h-[52px] items-center gap-2 rounded-xl bg-gold-foil px-7 font-bold text-kiniela-navy transition-transform duration-tap ease-stamp active:scale-[0.97]"
+      >
+        <RefreshCw aria-hidden="true" className="h-4 w-4" />
+        Reintentar
+      </button>
+    </div>
+  );
+}
+
+function HeroEmpty() {
+  return (
+    <div className="mx-auto flex max-w-md flex-col items-center text-center">
+      <KiniMascot status="proxima" className="w-28" />
+      <h1 className="mt-4 font-rockwell text-2xl font-extrabold text-white sm:text-3xl">No hay una Kiniela activa ahora</h1>
+      <p className="mt-2 text-sm text-slate-300">Vuelve pronto: la taquilla abre de noche.</p>
+    </div>
+  );
+}

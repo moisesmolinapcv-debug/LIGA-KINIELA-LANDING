@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { KinielaDataState } from '../types/kiniela';
-import { getKinielaData, subscribeToKiniela, getDefaultSeed, formatBs } from '../lib/kiniela-store';
+import { getKinielaData, subscribeToKiniela, getDefaultSeed } from '../lib/kiniela-store';
 import { Navbar } from '../components/Navbar';
 import { Hero } from '../components/Hero';
 import { MatchesSection } from '../components/MatchesSection';
@@ -11,8 +11,7 @@ import { RulesAndFaqSection } from '../components/RulesAndFaqSection';
 import { AlliesCarousel } from '../components/AlliesCarousel';
 import { Footer } from '../components/Footer';
 import { BottomNavBar } from '../components/BottomNavBar';
-import { HeroSkeleton } from '../components/skeletons/HeroSkeleton';
-import { MatchesSkeleton } from '../components/skeletons/MatchesSkeleton';
+import { KinielasProvider } from '../components/taquilla/KinielasProvider';
 import { WinnersSkeleton } from '../components/skeletons/WinnersSkeleton';
 
 export default function HomePage() {
@@ -68,28 +67,29 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-kiniela-navy text-white flex flex-col selection:bg-kiniela-gold selection:text-kiniela-navy relative pb-32 sm:pb-36 lg:pb-0 overflow-x-hidden max-w-full">
+    <KinielasProvider>
+    <div className="min-h-screen bg-kiniela-navy text-white flex flex-col selection:bg-kiniela-gold selection:text-kiniela-navy relative overflow-x-clip max-w-full">
       {/* Navegación superior oficial */}
       <Navbar />
 
       {/* Contenido Principal de la Landing Page Comercial */}
       <main className="flex-grow">
+        {/* 1. Hero "La Taquilla": toma la Kiniela de /api/kinielas y maneja sus propios estados de carga/error.
+            Los banners del admin solo se pasan cuando vienen de Supabase: la semilla local trae montos de ejemplo
+            (1.500.000 Bs) que no deben verse como dato real (Q12). */}
+        <Hero slides={!isLoading && data.source === 'supabase' ? data.banners : []} />
+
+        {/* 2. Cartelera / Boleto de práctica: sus datos vienen solo del contexto de Kinielas (/api/kinielas),
+            no del store antiguo (data.matches ya no se usa aquí). Maneja sus propios estados de carga. */}
+        <MatchesSection />
+
         {isLoading ? (
-          /* Esqueletos con Shimmer animado durante la carga inicial de Supabase */
+          /* Esqueleto con Shimmer animado durante la carga inicial de Supabase */
           <div className="animate-fadeIn">
-            <HeroSkeleton />
-            <MatchesSkeleton />
             <WinnersSkeleton />
           </div>
         ) : (
-          /* Contenido Real Sincronizado con Supabase */
           <div className="animate-fadeIn">
-            {/* 1. Sección Hero con Carrusel Hero Billboard y montos en Bs */}
-            <Hero edition={data.edition} slides={data.banners} copys={data.copys} />
-
-            {/* 2. Cartelera de Partidos en Vivo con Filtros y Marcadores */}
-            <MatchesSection matches={data.matches} copys={data.copys} />
-
             {/* 3. Salón de Campeones con Ganadores Previos y montos en Bs */}
             <WinnersSection winners={data.winners} copys={data.copys} />
           </div>
@@ -110,7 +110,8 @@ export default function HomePage() {
       <Footer />
 
       {/* 6. Barra de Navegación Inferior Flotante Móvil (Estilo Yummy, translúcida con 5 accesos) */}
-      <BottomNavBar prizeText={formatBs(data.edition.prize_amount_bs)} />
+      <BottomNavBar />
     </div>
+    </KinielasProvider>
   );
 }

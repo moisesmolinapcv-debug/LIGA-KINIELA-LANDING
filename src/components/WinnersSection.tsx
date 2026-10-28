@@ -1,126 +1,105 @@
-'use client';
-
 import React from 'react';
 import { Winner, SiteCopys } from '../types/kiniela';
-import { Trophy, Medal, MapPin, Calendar, CheckCircle, Award } from 'lucide-react';
+import { Trophy, MapPin, Calendar, BadgeCheck, Award } from 'lucide-react';
+import { CAMPEONES_SECCION as T } from '../content/landing';
 
 interface WinnersSectionProps {
   winners: Winner[];
+  // Se conserva por compatibilidad con la página; los textos de esta sección vienen de src/content/landing.ts
   copys?: SiteCopys;
 }
 
-export const WinnersSection: React.FC<WinnersSectionProps> = ({ winners, copys }) => {
+/** Copa dorada en línea (decorativa). */
+function Copa({ destacada }: { destacada: boolean }) {
   return (
-    <section id="campeones" className="py-16 sm:py-24 bg-kiniela-navy-deep relative scroll-mt-20">
-      {/* Luces sutiles */}
-      <div className="absolute top-1/3 left-10 w-96 h-96 bg-kiniela-gold/10 blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-10 right-10 w-96 h-96 bg-kiniela-vinotinto/15 blur-[140px] pointer-events-none" />
+    <svg viewBox="0 0 64 72" aria-hidden="true" focusable="false" className="h-16 w-14 flex-none">
+      <defs>
+        <linearGradient id={destacada ? 'm3c-oro-d' : 'm3c-oro'} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#ffd58a" />
+          <stop offset="0.55" stopColor="#FFAF3F" />
+          <stop offset="1" stopColor="#c9791c" />
+        </linearGradient>
+      </defs>
+      <g fill={`url(#${destacada ? 'm3c-oro-d' : 'm3c-oro'})`}>
+        <path d="M16 6h32v18c0 10-7 18-16 18S16 34 16 24V6z" />
+        <path d="M16 10H6c0 12 4 20 12 22l1-5c-4-2-6-7-6-13h3v-4zM48 10h10c0 12-4 20-12 22l-1-5c4-2 6-7 6-13h-3v-4z" opacity="0.85" />
+        <rect x="29" y="42" width="6" height="10" />
+        <path d="M20 52h24l3 8H17l3-8z" />
+      </g>
+      <rect x="14" y="62" width="36" height="6" rx="1.5" fill="#882445" stroke="#FFAF3F" strokeWidth="1" />
+    </svg>
+  );
+}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        
+export const WinnersSection: React.FC<WinnersSectionProps> = ({ winners }) => {
+  return (
+    <section id="campeones" className="relative scroll-mt-20 bg-kiniela-navy-deep py-16 sm:py-24">
+      <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         {/* Encabezado */}
-        <div className="text-center max-w-3xl mx-auto mb-14">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-kiniela-gold/15 border border-kiniela-gold/30 text-kiniela-gold text-xs font-bold uppercase tracking-wider mb-3">
-            <Trophy className="w-4 h-4 text-kiniela-gold" />
-            <span>{copys?.winners_badge || 'Transparencia & Cumplimiento'}</span>
+        <div className="mx-auto mb-10 max-w-3xl text-center">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-kiniela-gold/30 bg-kiniela-gold/15 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-kiniela-gold">
+            <Trophy aria-hidden="true" className="h-4 w-4 text-kiniela-gold" />
+            <span>{T.badge}</span>
           </div>
-          <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight uppercase">
-            {copys?.winners_title || 'Salón de Campeones'}
+          <h2 className="font-rockwell text-3xl font-black uppercase tracking-tight text-white sm:text-5xl">
+            {T.titulo}
           </h2>
-          <p className="mt-3 text-base sm:text-lg text-slate-300 leading-relaxed">
-            {copys?.winners_subtitle || 'Conoce a los ganadores que acertaron sus pronósticos y se llevaron el pozo acumulado. En Liga Kiniela premiamos el conocimiento futbolístico de cada venezolano.'}
+          <p className="mt-3 text-base text-slate-200 sm:text-lg">{T.subtitulo}</p>
+          {/* Decisión Q8: el sello va una sola vez, a nivel de sección */}
+          <p className="mt-4 inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-400/10 px-4 py-1.5 text-sm font-semibold text-emerald-300">
+            <BadgeCheck aria-hidden="true" className="h-4 w-4" />
+            {T.sello}
           </p>
         </div>
 
-        {/* Tarjetas de Ganadores */}
         {winners.length === 0 ? (
-          <div className="text-center py-12 rounded-2xl bg-kiniela-navy-card/50 border border-kiniela-navy-border/50">
-            <Award className="w-12 h-12 text-slate-500 mx-auto mb-3" />
-            <p className="text-slate-400">Los campeones de las próximas ediciones serán publicados aquí.</p>
+          <div className="rounded-2xl border border-kiniela-navy-border/60 bg-kiniela-navy-card/50 py-12 text-center">
+            <Award aria-hidden="true" className="mx-auto mb-3 h-12 w-12 text-slate-400" />
+            <p className="px-4 text-slate-300">{T.vacio}</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {winners.map((winner, idx) => (
-              <div
-                key={winner.id || idx}
-                className={`relative rounded-2xl p-6 transition-all duration-300 flex flex-col justify-between ${
-                  winner.is_recent
-                    ? 'bg-gradient-to-b from-kiniela-navy-card via-kiniela-navy to-kiniela-navy-deep border-2 border-kiniela-gold/60 shadow-brand-gold hover:scale-[1.02]'
-                    : 'bg-kiniela-navy-card/75 backdrop-blur-md border border-kiniela-navy-border hover:border-kiniela-gold/30 hover:scale-[1.01]'
-                }`}
-              >
-                {/* Badge de Campeón Reciente */}
-                {winner.is_recent && (
-                  <div className="absolute -top-3 right-6 px-3 py-1 rounded-full bg-gradient-to-r from-kiniela-gold to-kiniela-gold-hover text-kiniela-navy text-[11px] font-extrabold uppercase tracking-wider shadow-md flex items-center gap-1">
-                    <Medal className="w-3.5 h-3.5" />
-                    <span>Último Ganador</span>
-                  </div>
-                )}
-
-                <div>
-                  {/* Edición */}
-                  <div className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                    {winner.edition_title}
-                  </div>
-
-                  {/* Nombre del Ganador */}
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 rounded-full bg-kiniela-vinotinto/40 border border-kiniela-gold/40 flex items-center justify-center text-kiniela-gold font-bold text-lg shadow-inner">
-                      <Trophy className="w-6 h-6 text-kiniela-gold" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight leading-tight">
+          /* Vitrina: marco de cristal con un trofeo sobre su base por cada campeón */
+          <div className="m3c-vitrina">
+            <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {winners.map((winner, idx) => (
+                <li
+                  key={winner.id || idx}
+                  className={`m3c-trofeo ${winner.is_recent ? 'is-reciente' : ''}`}
+                >
+                  <div className="flex items-start gap-4">
+                    <Copa destacada={winner.is_recent} />
+                    <div className="min-w-0 flex-1">
+                      <h3 className="break-words font-rockwell text-lg font-bold leading-tight text-white">
                         {winner.winner_name}
                       </h3>
-                      <span className="flex items-center gap-1 text-xs text-emerald-400 font-medium mt-0.5">
-                        <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Premio Verificado y Cobrado</span>
-                      </span>
+                      <p className="mt-1 text-xs font-medium uppercase tracking-wide text-slate-300">
+                        {winner.edition_title}
+                      </p>
                     </div>
                   </div>
 
-                  {/* Premio Destacado */}
-                  <div className="p-3.5 rounded-xl bg-kiniela-navy-deep/90 border border-kiniela-gold/25 mb-4">
-                    <span className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold block mb-0.5">
-                      Premio Obtenido
-                    </span>
-                    <span className="text-2xl font-black text-kiniela-gold tracking-tight font-serif glow-gold-text">
+                  <div className="mt-4 rounded-xl border border-kiniela-gold/30 bg-kiniela-navy-deep/80 px-4 py-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-300">{T.premio}</p>
+                    <p className="font-rockwell text-2xl font-black leading-tight text-kiniela-gold">
                       {winner.prize_won}
+                    </p>
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-between gap-3 text-xs text-slate-300">
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <MapPin aria-hidden="true" className="h-3.5 w-3.5 flex-none text-kiniela-gold" />
+                      <span className="truncate">{winner.city}</span>
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <Calendar aria-hidden="true" className="h-3.5 w-3.5 flex-none text-slate-400" />
+                      <span>{winner.winning_date}</span>
                     </span>
                   </div>
-                </div>
-
-                {/* Footer de la tarjeta con Ciudad y Fecha */}
-                <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">
-                  <div className="flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-kiniela-gold" />
-                    <span>{winner.city}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-slate-500" />
-                    <span>{winner.winning_date}</span>
-                  </div>
-                </div>
-
-              </div>
-            ))}
+                </li>
+              ))}
+            </ul>
           </div>
         )}
-
-        {/* Garantía Institucional de Transparencia */}
-        <div className="mt-12 p-6 rounded-2xl bg-kiniela-navy-card/60 border border-kiniela-navy-border/60 max-w-3xl mx-auto flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-          <div className="w-14 h-14 rounded-full bg-kiniela-vinotinto/30 border border-kiniela-vinotinto flex items-center justify-center flex-shrink-0">
-            <Award className="w-7 h-7 text-kiniela-gold" />
-          </div>
-          <div>
-            <h4 className="text-base font-bold text-white">Compromiso Total de Transparencia</h4>
-            <p className="text-sm text-slate-300 mt-0.5">
-              Cada edición cuenta con actas oficiales de premiación. Los resultados finales se auditan de forma 
-              pública e inmediata al concluir el último encuentro de la jornada.
-            </p>
-          </div>
-        </div>
-
       </div>
     </section>
   );
