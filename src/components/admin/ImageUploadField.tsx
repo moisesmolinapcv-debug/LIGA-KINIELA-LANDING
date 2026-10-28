@@ -1,222 +1,351 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
-import { UploadCloud, Image as ImageIcon, CheckCircle, AlertCircle, RefreshCw, X, Link as LinkIcon } from 'lucide-react';
-import { uploadMediaFile } from '@/lib/storage';
+import React, { useEffect, useRef, useState } from 'react';
+import { UploadCloud, CheckCircle, AlertCircle, RefreshCw, X, Link as LinkIcon, Download, TriangleAlert } from 'lucide-react';
+import {
+  ALLOWED_IMAGE_LABEL,
+  ALLOWED_IMAGE_TYPES,
+  uploadMediaFile,
+  validateImageFile,
+} from '@/lib/storage';
+import { BannerPreview } from './BannerPreview';
+import { checkImageDims, formatKb, TEMPLATE_LINKS, type BannerSpec } from './banner-specs';
+import { BTN_GHOST, BTN_PRIMARY, INPUT, SPINNER } from './ui';
 
 interface ImageUploadFieldProps {
-  label: string;
+  spec: BannerSpec;
   value: string;
   onChange: (url: string) => void;
-  placeholder?: string;
-  helperText?: string;
-  icon?: React.ReactNode;
+  /** Si la imagen es opcional se explica qué pasa cuando falta. */
+  optionalHint?: string;
   bucketName?: string;
-  aspectRatioLabel?: string;
+  /** Prefijo para los id (varios campos en la misma pantalla). */
+  idPrefix: string;
 }
 
+interface Dims {
+  w: number;
+  h: number;
+}
+
+function readDimsFromUrl(url: string): Promise<Dims | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+}
+
+interface Pending {
+  file: File;
+  previewUrl: string;
+  dims: Dims | null;
+  warnings: string[];
+}
+
+/**
+ * Campo de imagen de banner: muestra las medidas oficiales, revisa tipo, peso y proporción
+ * al elegir el archivo (advierte, no bloquea) y sube a Supabase Storage solo cuando se confirma.
+ */
 export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
-  label,
+  spec,
   value,
   onChange,
-  placeholder = 'https://... o sube una imagen',
-  helperText,
-  icon,
+  optionalHint,
   bucketName = 'banners',
-  aspectRatioLabel,
+  idPrefix,
 }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [showManualInput, setShowManualInput] = useState(false);
+  const [showManual, setShowManual] = useState(false);
+  const [showSafe, setShowSafe] = useState(false);
+  const [pending, setPending] = useState<Pending | null>(null);
+  const [dims, setDims] = useState<Dims | null>(null);
+  const [broken, setBroken] = useState(false);
+  const [bytes, setBytes] = useState<number | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const uploadedBytes = useRef<{ url: string; bytes: number } | null>(null);
+  const template = TEMPLATE_LINKS[spec.key === 'desktop' ? 0 : 1];
 
-  const handleFileSelect = async (file: File) => {
-    if (!file) return;
+  // Mide la imagen vinculada (y su peso si el servidor lo permite) para avisar si no coincide con la medida
+  useEffect(() => {
+    let alive = true;
+    setDims(null);
+    setBroken(false);
+    setBytes(undefined);
+    if (!value) return;
+    readDimsFromUrl(value).then((d) => {
+      if (!alive) return;
+      if (d) setDims(d);
+      else setBroken(true);
+    });
+    if (uploadedBytes.current?.url === value) {
+      setBytes(uploadedBytes.current.bytes);
+    } else if (/^https?:\/\/[^/]+\/storage\/v1\/object\/public\//.test(value)) {
+      // Solo imágenes de nuestro almacén (otros sitios suelen bloquear la consulta del peso)
+      fetch(value, { method: 'HEAD' })
+        .then((r) => {
+          const len = Number(r.headers.get('content-length'));
+          if (alive && Number.isFinite(len) && len > 0) setBytes(len);
+        })
+        .catch(() => undefined);
+    }
+    return () => {
+      alive = false;
+    };
+  }, [value]);
+
+  useEffect(() => {
+    return () => {
+      if (pending) URL.revokeObjectURL(pending.previewUrl);
+    };
+  }, [pending]);
+
+  const doUpload = async (file: File) => {
     setIsUploading(true);
     setUploadError(null);
-
     try {
       const result = await uploadMediaFile(file, bucketName);
       if (result.url) {
+        uploadedBytes.current = { url: result.url, bytes: file.size };
         onChange(result.url);
-        if (result.error) {
-          setUploadError(result.error);
-        }
-      } else if (result.error) {
-        setUploadError(result.error);
+      } else {
+        setUploadError(result.error || 'No se pudo subir la imagen.');
       }
-    } catch (err: any) {
-      setUploadError(err?.message || 'Error al procesar el archivo seleccionado.');
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'No se pudo subir la imagen.');
     } finally {
       setIsUploading(false);
     }
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDragging(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFileSelect(e.dataTransfer.files[0]);
+  const handleFileSelect = async (file: File | undefined) => {
+    if (!file) return;
+    setUploadError(null);
+    const invalid = validateImageFile(file);
+    if (invalid) {
+      setUploadError(invalid);
+      return;
+    }
+    const previewUrl = URL.createObjectURL(file);
+    const d = await readDimsFromUrl(previewUrl);
+    if (!d) {
+      URL.revokeObjectURL(previewUrl);
+      setUploadError('No se pudo leer la imagen. Prueba con otro archivo.');
+      return;
+    }
+    const check = checkImageDims(spec, d.w, d.h, file.size);
+    if (check.level === 'ok') {
+      URL.revokeObjectURL(previewUrl);
+      await doUpload(file);
+    } else {
+      // Se advierte antes de subir: no se bloquea, pero tampoco se sube nada sin que se vea el aviso
+      setPending({ file, previewUrl, dims: d, warnings: check.messages });
     }
   };
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDragging(true);
+  const confirmPending = async () => {
+    if (!pending) return;
+    const file = pending.file;
+    setPending(null);
+    await doUpload(file);
   };
 
-  const handleDragLeave = () => {
-    setIsDragging(false);
-  };
+  const check = dims ? checkImageDims(spec, dims.w, dims.h, bytes) : null;
+  const fieldId = `${idPrefix}-file`;
 
   return (
-    <div className="space-y-2">
-      {/* Etiqueta y Controles */}
-      <div className="flex items-center justify-between">
-        <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-          {icon || <ImageIcon className="w-3.5 h-3.5 text-kiniela-gold" />}
-          <span>{label}</span>
-          {aspectRatioLabel && (
-            <span className="text-[10px] lowercase font-normal px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
-              {aspectRatioLabel}
-            </span>
-          )}
-        </label>
-
-        <button
-          type="button"
-          onClick={() => setShowManualInput(!showManualInput)}
-          className="text-[11px] text-slate-400 hover:text-kiniela-gold flex items-center gap-1 transition-colors"
+    <div className="rounded-2xl border border-[#1a2785] bg-[#00063E]/50 p-4 space-y-3">
+      {/* Medidas oficiales, siempre visibles */}
+      <div>
+        <p className="text-sm font-bold text-white">{spec.label}</p>
+        <ul className="mt-1.5 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-0.5 text-xs text-slate-200">
+          <li>Se ve en: {spec.where}</li>
+          <li>Proporción: {spec.ratioLabel}</li>
+          <li>Peso máximo recomendado: {spec.maxKb} KB</li>
+          <li>Formato: {ALLOWED_IMAGE_LABEL} (no GIF)</li>
+          <li className="sm:col-span-2">
+            Zona segura (textos y logos dentro): {spec.safe.side} px a cada lado, {spec.safe.top} px arriba y {spec.safe.bottom} px abajo.
+          </li>
+        </ul>
+        <a
+          href={template.href}
+          download={template.file}
+          className="mt-1 inline-flex items-center gap-1.5 min-h-[44px] text-xs font-bold text-kiniela-gold hover:underline"
         >
-          <LinkIcon className="w-3 h-3" />
-          <span>{showManualInput ? 'Ocultar URL manual' : 'Escribir URL manual'}</span>
-        </button>
+          <Download className="w-3.5 h-3.5" aria-hidden="true" />
+          Descargar la plantilla para diseñar encima
+        </a>
+        {optionalHint && <p className="text-xs text-amber-200 mt-0.5">{optionalHint}</p>}
       </div>
 
-      {/* Input de archivo nativo oculto */}
       <input
+        id={fieldId}
         ref={fileInputRef}
         type="file"
-        accept="image/png, image/jpeg, image/jpg, image/webp, image/svg+xml"
-        className="hidden"
+        accept={ALLOWED_IMAGE_TYPES.join(',')}
+        className="sr-only"
+        tabIndex={-1}
+        aria-label={`Elegir archivo: ${spec.label}`}
         onChange={(e) => {
-          if (e.target.files && e.target.files[0]) {
-            handleFileSelect(e.target.files[0]);
-          }
+          void handleFileSelect(e.target.files?.[0]);
+          e.target.value = '';
         }}
       />
 
-      {/* Zona de Subida y Previsualización */}
-      {value ? (
-        <div className="relative group rounded-xl overflow-hidden border border-[#1a2785] bg-[#00063E] p-2 flex items-center gap-3">
-          {/* Miniatura */}
-          <div className="w-20 h-14 sm:w-28 sm:h-16 rounded-lg overflow-hidden bg-slate-900 border border-white/10 flex-shrink-0 relative">
-            <img
-              src={value}
-              alt="Previsualización"
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                // Si la imagen falla en cargar
-                e.currentTarget.style.display = 'none';
-              }}
-            />
-          </div>
-
-          {/* Información y Acciones */}
-          <div className="flex-grow min-w-0">
-            <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-bold mb-0.5">
-              <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" />
-              <span>Imagen vinculada con éxito</span>
+      {/* Aviso antes de subir */}
+      {pending && (
+        <div role="alert" className="rounded-xl border border-amber-500/50 bg-amber-950/40 p-3 space-y-3">
+          <div className="flex gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={pending.previewUrl} alt="Vista previa de la imagen elegida" className="w-24 h-16 object-contain rounded bg-[#000428] border border-white/10 shrink-0" />
+            <div className="text-sm text-amber-100 space-y-1 min-w-0">
+              <p className="font-bold flex items-center gap-1.5">
+                <TriangleAlert className="w-4 h-4 text-amber-300 shrink-0" aria-hidden="true" />
+                Revisa esta imagen antes de subirla
+              </p>
+              <p className="text-xs text-amber-200 truncate">
+                {pending.file.name} · {pending.dims ? `${pending.dims.w} × ${pending.dims.h} px` : ''} · {formatKb(pending.file.size)}
+              </p>
             </div>
-            <p className="text-[11px] font-mono text-slate-400 truncate max-w-[280px] sm:max-w-md">
-              {value}
-            </p>
           </div>
-
-          {/* Botones de Cambio y Eliminación */}
-          <div className="flex items-center gap-1.5 flex-shrink-0 pr-1">
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isUploading}
-              className="px-2.5 py-1.5 rounded-lg bg-kiniela-navy text-xs font-semibold text-slate-200 hover:text-white hover:bg-slate-700 border border-white/10 transition-colors flex items-center gap-1"
-              title="Cambiar imagen"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isUploading ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">Cambiar</span>
+          <ul className="list-disc pl-5 space-y-1 text-sm text-amber-100">
+            {pending.warnings.map((w, i) => (
+              <li key={i}>{w}</li>
+            ))}
+          </ul>
+          <p className="text-xs text-amber-200">Puedes subirla igual, pero lo mejor es usar las medidas indicadas.</p>
+          <div className="flex flex-col-reverse sm:flex-row gap-2">
+            <button type="button" onClick={() => setPending(null)} className={BTN_GHOST}>
+              Elegir otra imagen
             </button>
-
-            <button
-              type="button"
-              onClick={() => onChange('')}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 transition-colors"
-              title="Quitar imagen"
-            >
-              <X className="w-4 h-4" />
+            <button type="button" onClick={confirmPending} className={BTN_PRIMARY}>
+              <UploadCloud className="w-4 h-4 text-kiniela-gold" aria-hidden="true" />
+              Subir de todas formas
             </button>
           </div>
         </div>
-      ) : (
-        /* Zona Drag & Drop cuando no hay imagen */
+      )}
+
+      {/* Imagen vinculada o zona de subida */}
+      {!pending && value ? (
+        <div className="space-y-3">
+          <BannerPreview spec={spec} src={value} alt={`Vista previa: ${spec.label}`} showSafe={showSafe} maxWidth={spec.key === 'desktop' ? '480px' : '200px'} />
+
+          <label className="flex items-center gap-2 min-h-[44px] text-sm text-slate-100 cursor-pointer">
+            <input type="checkbox" checked={showSafe} onChange={(e) => setShowSafe(e.target.checked)} className="w-5 h-5 accent-kiniela-gold" />
+            Mostrar la zona segura sobre la imagen
+          </label>
+
+          {broken ? (
+            <p role="alert" className="flex gap-2 text-sm text-rose-200">
+              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
+              No se pudo cargar esta imagen. Revisa la dirección o sube otro archivo.
+            </p>
+          ) : check ? (
+            check.level === 'ok' ? (
+              <p className="flex gap-2 text-sm text-emerald-300">
+                <CheckCircle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
+                Medidas correctas: {dims!.w} × {dims!.h} px{bytes ? ` · ${formatKb(bytes)}` : ''}
+              </p>
+            ) : (
+              <ul className="space-y-1" role="status">
+                {check.messages.map((m, i) => (
+                  <li key={i} className="flex gap-2 text-sm text-amber-200">
+                    <TriangleAlert className="w-4 h-4 mt-0.5 shrink-0 text-amber-300" aria-hidden="true" />
+                    {m}
+                  </li>
+                ))}
+              </ul>
+            )
+          ) : null}
+
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploading} className={BTN_GHOST}>
+              {isUploading ? <span className={SPINNER} aria-hidden="true" /> : <RefreshCw className="w-4 h-4" aria-hidden="true" />}
+              {isUploading ? 'Subiendo...' : 'Cambiar imagen'}
+            </button>
+            <button type="button" onClick={() => onChange('')} disabled={isUploading} className={BTN_GHOST}>
+              <X className="w-4 h-4" aria-hidden="true" />
+              Quitar imagen
+            </button>
+          </div>
+        </div>
+      ) : !pending ? (
         <div
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
+          role="button"
+          tabIndex={0}
+          aria-label={`Elegir o soltar un archivo. ${spec.label}`}
+          onDrop={(e) => {
+            e.preventDefault();
+            setIsDragging(false);
+            void handleFileSelect(e.dataTransfer.files?.[0]);
+          }}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragging(true);
+          }}
+          onDragLeave={() => setIsDragging(false)}
           onClick={() => !isUploading && fileInputRef.current?.click()}
-          className={`border-2 border-dashed rounded-xl p-4 sm:p-5 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2 ${
-            isDragging
-              ? 'border-kiniela-gold bg-kiniela-gold/10 scale-[1.01]'
-              : 'border-[#1a2785] hover:border-kiniela-gold/60 bg-[#00063E]/60 hover:bg-[#00063E]'
+          onKeyDown={(e) => {
+            if ((e.key === 'Enter' || e.key === ' ') && !isUploading) {
+              e.preventDefault();
+              fileInputRef.current?.click();
+            }
+          }}
+          className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-colors flex flex-col items-center justify-center gap-2 min-h-[132px] ${
+            isDragging ? 'border-kiniela-gold bg-kiniela-gold/10' : 'border-[#2a3aa8] hover:border-kiniela-gold/60 bg-[#00063E]/60'
           }`}
         >
           {isUploading ? (
-            <div className="py-2 flex flex-col items-center gap-2">
-              <RefreshCw className="w-6 h-6 text-kiniela-gold animate-spin" />
-              <span className="text-xs font-bold text-white">Subiendo imagen a Supabase Storage...</span>
-              <span className="text-[10px] text-slate-400">Optimizando y generando enlace CDN</span>
+            <div className="flex flex-col items-center gap-2" role="status">
+              <RefreshCw className="w-6 h-6 text-kiniela-gold animate-spin" aria-hidden="true" />
+              <span className="text-sm font-bold text-white">Subiendo la imagen...</span>
             </div>
           ) : (
             <>
-              <div className="w-10 h-10 rounded-full bg-kiniela-vinotinto/30 border border-kiniela-gold/40 flex items-center justify-center text-kiniela-gold">
-                <UploadCloud className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-white">
-                  Haz clic para examinar o arrastra tu archivo aquí
-                </p>
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  Formatos compatibles: .PNG, .JPG, .JPEG, .WEBP o .SVG (hasta 10MB)
-                </p>
-              </div>
+              <span className="w-10 h-10 rounded-full bg-kiniela-vinotinto/30 border border-kiniela-gold/40 flex items-center justify-center text-kiniela-gold">
+                <UploadCloud className="w-5 h-5" aria-hidden="true" />
+              </span>
+              <span className="text-sm font-bold text-white">Toca para elegir una imagen o arrástrala aquí</span>
+              <span className="text-xs text-slate-300">{ALLOWED_IMAGE_LABEL} · hasta 5 MB (lo ideal: menos de {spec.maxKb} KB)</span>
             </>
           )}
         </div>
-      )}
+      ) : null}
 
-      {/* Input manual opcional */}
-      {showManualInput && (
-        <div className="pt-1 animate-fadeIn">
+      {/* Dirección manual */}
+      <div>
+        <button
+          type="button"
+          onClick={() => setShowManual((v) => !v)}
+          aria-expanded={showManual}
+          className="min-h-[44px] inline-flex items-center gap-1.5 text-xs font-bold text-slate-200 hover:text-kiniela-gold"
+        >
+          <LinkIcon className="w-3.5 h-3.5" aria-hidden="true" />
+          {showManual ? 'Ocultar la dirección de la imagen' : 'Pegar la dirección (URL) de una imagen ya publicada'}
+        </button>
+        {showManual && (
           <input
+            id={`${idPrefix}-url`}
             type="url"
             value={value}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder={placeholder}
-            className="w-full px-3.5 py-2 bg-[#00063E] border border-[#1a2785] rounded-xl text-white text-xs font-mono focus:outline-none focus:border-kiniela-gold"
+            onChange={(e) => onChange(e.target.value.trim())}
+            aria-label={`Dirección (URL) de la imagen: ${spec.label}`}
+            placeholder="https://..."
+            className={`${INPUT} font-mono text-xs mt-1`}
           />
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Mensaje de error o notificación si aplica */}
       {uploadError && (
-        <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-950/40 border border-amber-500/30 text-amber-200 text-xs animate-fadeIn">
-          <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
-          <p className="leading-tight">{uploadError}</p>
+        <div role="alert" className="flex items-start gap-2 p-3 rounded-lg bg-rose-950/50 border border-rose-500/40 text-rose-100 text-sm">
+          <AlertCircle className="w-4 h-4 text-rose-300 shrink-0 mt-0.5" aria-hidden="true" />
+          <p>{uploadError}</p>
         </div>
       )}
-
-      {/* Texto de ayuda */}
-      {helperText && <p className="text-[10px] text-slate-400 leading-tight">{helperText}</p>}
     </div>
   );
 };

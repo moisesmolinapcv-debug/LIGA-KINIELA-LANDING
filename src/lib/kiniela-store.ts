@@ -89,255 +89,30 @@ if (isSupabaseConfigured()) {
   }
 }
 
-// Semilla inicial por defecto (Seed Data)
+// Semilla inicial por defecto. Sin banners ni montos de ejemplo (Q12): los montos salen
+// del endpoint oficial y los banners/campeones los carga el cliente desde el panel.
 export const getDefaultSeed = (): KinielaDataState => {
   const now = new Date();
 
   return {
+    // Edición antigua (la web ya no la usa). Valores neutros: sin títulos ni montos inventados.
     edition: {
-      id: 'f5141dac-6248-48d8-9626-0ae9cce4c3fe',
-      title: 'KINIELA MILLONARIA',
-      edition_number: 'Edición Activa',
+      id: 'edition-default',
+      title: '',
+      edition_number: '',
       ticket_price_usd: 0,
-      ticket_price_bs: 1000,
+      ticket_price_bs: 0,
       prize_amount_usd: 0,
-      prize_amount_bs: 1500000,
-      start_date: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(),
-      end_date: '2026-09-27T14:45:00-04:00',
+      prize_amount_bs: 0,
+      start_date: now.toISOString(),
+      end_date: now.toISOString(),
       is_active: true,
       created_at: now.toISOString(),
     },
-    matches: [
-      {
-        id: 'match-1',
-        edition_id: 'edition-default-24',
-        home_team: 'Alemania',
-        away_team: 'Grecia',
-        home_logo: 'https://api.iconify.design/twemoji:flag-germany.svg',
-        away_logo: 'https://api.iconify.design/twemoji:flag-greece.svg',
-        match_date: '2026-09-27T14:45:00-04:00',
-        status: 'EN ESPERA',
-        home_score: 0,
-        away_score: 0,
-        minute: '',
-        sort_order: 1,
-      },
-      {
-        id: 'match-2',
-        edition_id: 'edition-default-24',
-        home_team: 'Noruega',
-        away_team: 'Portugal',
-        home_logo: 'https://api.iconify.design/twemoji:flag-norway.svg',
-        away_logo: 'https://api.iconify.design/twemoji:flag-portugal.svg',
-        match_date: '2026-09-27T14:45:00-04:00',
-        status: 'EN ESPERA',
-        home_score: 0,
-        away_score: 0,
-        minute: '',
-        sort_order: 2,
-      },
-      {
-        id: 'match-3',
-        edition_id: 'edition-default-24',
-        home_team: 'Israel',
-        away_team: 'Irlanda',
-        home_logo: 'https://api.iconify.design/twemoji:flag-israel.svg',
-        away_logo: 'https://api.iconify.design/twemoji:flag-ireland.svg',
-        match_date: '2026-09-27T14:45:00-04:00',
-        status: 'EN ESPERA',
-        home_score: 0,
-        away_score: 0,
-        minute: '',
-        sort_order: 3,
-      },
-      {
-        id: 'match-4',
-        edition_id: 'edition-default-24',
-        home_team: 'Georgia',
-        away_team: 'Ucrania',
-        home_logo: 'https://api.iconify.design/twemoji:flag-georgia.svg',
-        away_logo: 'https://api.iconify.design/twemoji:flag-ukraine.svg',
-        match_date: '2026-09-28T12:00:00-04:00',
-        status: 'EN ESPERA',
-        home_score: 0,
-        away_score: 0,
-        minute: '',
-        sort_order: 4,
-      },
-      {
-        id: 'match-5',
-        edition_id: 'edition-default-24',
-        home_team: 'Armenia',
-        away_team: 'Montenegro',
-        home_logo: 'https://api.iconify.design/twemoji:flag-armenia.svg',
-        away_logo: 'https://api.iconify.design/twemoji:flag-montenegro.svg',
-        match_date: '2026-09-28T12:00:00-04:00',
-        status: 'EN ESPERA',
-        home_score: 0,
-        away_score: 0,
-        minute: '',
-        sort_order: 5,
-      },
-      {
-        id: 'match-6',
-        edition_id: 'edition-default-24',
-        home_team: 'Bélgica',
-        away_team: 'Francia',
-        home_logo: 'https://api.iconify.design/twemoji:flag-belgium.svg',
-        away_logo: 'https://api.iconify.design/twemoji:flag-france.svg',
-        match_date: '2026-09-28T14:45:00-04:00',
-        status: 'EN ESPERA',
-        home_score: 0,
-        away_score: 0,
-        minute: '',
-        sort_order: 6,
-      },
-      {
-        id: 'match-7',
-        edition_id: 'edition-default-24',
-        home_team: 'Turquía',
-        away_team: 'Italia',
-        home_logo: 'https://api.iconify.design/twemoji:flag-turkey.svg',
-        away_logo: 'https://api.iconify.design/twemoji:flag-italy.svg',
-        match_date: '2026-09-28T14:45:00-04:00',
-        status: 'EN ESPERA',
-        home_score: 0,
-        away_score: 0,
-        minute: '',
-        sort_order: 7,
-      },
-      {
-        id: 'match-8',
-        edition_id: 'edition-default-24',
-        home_team: 'Suecia',
-        away_team: 'Polonia',
-        home_logo: 'https://api.iconify.design/twemoji:flag-sweden.svg',
-        away_logo: 'https://api.iconify.design/twemoji:flag-poland.svg',
-        match_date: '2026-09-28T14:45:00-04:00',
-        status: 'EN ESPERA',
-        home_score: 0,
-        away_score: 0,
-        minute: '',
-        sort_order: 8,
-      },
-      {
-        id: 'match-9',
-        edition_id: 'edition-default-24',
-        home_team: 'Rumania',
-        away_team: 'Bosnia',
-        home_logo: 'https://api.iconify.design/twemoji:flag-romania.svg',
-        away_logo: 'https://api.iconify.design/twemoji:flag-bosnia-and-herzegovina.svg',
-        match_date: '2026-09-28T14:45:00-04:00',
-        status: 'EN ESPERA',
-        home_score: 0,
-        away_score: 0,
-        minute: '',
-        sort_order: 9,
-      },
-      {
-        id: 'match-10',
-        edition_id: 'edition-default-24',
-        home_team: 'Irlanda',
-        away_team: 'Hungría',
-        home_logo: 'https://api.iconify.design/twemoji:flag-ireland.svg',
-        away_logo: 'https://api.iconify.design/twemoji:flag-hungary.svg',
-        match_date: '2026-09-28T14:45:00-04:00',
-        status: 'EN ESPERA',
-        home_score: 0,
-        away_score: 0,
-        minute: '',
-        sort_order: 10,
-      },
-    ],
-    winners: [
-      {
-        id: 'win-1',
-        edition_title: 'Edición #23 - Champions & Vinotinto',
-        winner_name: 'Carlos Mendoza',
-        prize_won: '1.500.000 Bs (Acumulado)',
-        winning_date: '15 Septiembre 2026',
-        city: 'Caracas, Dto. Capital',
-        is_recent: true,
-      },
-      {
-        id: 'win-2',
-        edition_title: 'Edición #22 - Clásico de Fin de Semana',
-        winner_name: 'Yorvis Silva',
-        prize_won: '800.000 Bs (1er Lugar)',
-        winning_date: '08 Septiembre 2026',
-        city: 'Maracaibo, Zulia',
-        is_recent: true,
-      },
-      {
-        id: 'win-3',
-        edition_title: 'Edición #21 - Kiniela Dominguera',
-        winner_name: 'Mariela Hernández',
-        prize_won: '1.200.000 Bs (Acumulado)',
-        winning_date: '01 Septiembre 2026',
-        city: 'Barquisimeto, Lara',
-        is_recent: true,
-      },
-      {
-        id: 'win-4',
-        edition_title: 'Edición #20 - Copa Conmebol',
-        winner_name: 'Jesús R. Zambrano',
-        prize_won: '1.500.000 Bs (Acumulado)',
-        winning_date: '25 Agosto 2026',
-        city: 'Valencia, Carabobo',
-        is_recent: false,
-      },
-      {
-        id: 'win-5',
-        edition_title: 'Edición #19 - Liga Futve & Europa',
-        winner_name: 'Andrés E. Colmenárez',
-        prize_won: '650.000 Bs (1er Lugar)',
-        winning_date: '18 Agosto 2026',
-        city: 'San Cristóbal, Táchira',
-        is_recent: false,
-      },
-    ],
-    banner: {
-      id: 'banner-default-1',
-      title: '¡Gran Pozo Acumulado de 1.500.000 Bs! Participa por solo 1.000 Bs',
-      image_url: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1920&h=600&q=85',
-      target_link: '#',
-      is_active: true,
-    },
-    banners: [
-      {
-        id: 'slide-1',
-        title: '¡Gran Pozo Acumulado de 1.500.000 Bs! Participa por solo 1.000 Bs',
-        image_url: 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=1920&h=650&q=85',
-        image_url_mobile: 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=1080&h=1250&q=85',
-        button_text: 'Ver Cartelera de Partidos →',
-        target_section: '#partidos',
-        is_active: true,
-        sort_order: 1,
-        created_at: now.toISOString(),
-      },
-      {
-        id: 'slide-2',
-        title: 'La Emoción del Fútbol: Vinotinto, Libertadores y Clásicos Europeos',
-        image_url: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1920&h=650&q=85',
-        image_url_mobile: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1080&h=1250&q=85',
-        button_text: 'Consultar Premios →',
-        target_section: '#premios',
-        is_active: true,
-        sort_order: 2,
-        created_at: now.toISOString(),
-      },
-      {
-        id: 'slide-3',
-        title: 'Salón de Campeones: Transparencia y Premios Garantizados',
-        image_url: 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&w=1920&h=650&q=85',
-        image_url_mobile: 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&w=1080&h=1250&q=85',
-        button_text: 'Conoce los Ganadores →',
-        target_section: '#campeones',
-        is_active: true,
-        sort_order: 3,
-        created_at: now.toISOString(),
-      },
-    ],
+    matches: [],
+    winners: [],
+    banner: null,
+    banners: [],
     copys: DEFAULT_COPYS,
     source: 'local',
     lastUpdated: now.toISOString(),
@@ -362,18 +137,17 @@ const readLocalData = (): KinielaDataState => {
     }
     const parsed = JSON.parse(raw) as KinielaDataState;
     
-    // Auto-migración si no existía la lista de banners en LocalStorage
-    if (!Array.isArray(parsed.banners) || parsed.banners.length === 0) {
-      parsed.banners = getDefaultSeed().banners;
-      writeLocalData(parsed);
-    }
+    // Auto-migración: listas ausentes en copias antiguas (sin sembrar ejemplos)
+    if (!Array.isArray(parsed.banners)) parsed.banners = [];
+    if (!Array.isArray(parsed.winners)) parsed.winners = [];
+    if (!Array.isArray(parsed.matches)) parsed.matches = [];
+    if (!parsed.edition) parsed.edition = getDefaultSeed().edition;
 
     // Auto-migración si no existían copys en LocalStorage
     if (!parsed.copys) {
       parsed.copys = DEFAULT_COPYS;
-      writeLocalData(parsed);
     }
-    
+
     return parsed;
   } catch (error) {
     console.warn('[LigaKiniela] Error leyendo LocalStorage, usando seed inicial:', error);
@@ -435,8 +209,10 @@ export const subscribeToKiniela = (callback: (data: KinielaDataState) => void): 
 // ============================================================================
 
 /**
- * Obtiene el estado completo de la Kiniela:
- * Prioriza Supabase si está disponible; de lo contrario o ante falla, devuelve LocalStorage.
+ * Obtiene el estado completo del panel y de la landing (banners y campeones).
+ * Prioriza Supabase; solo recurre a LocalStorage si la base no responde.
+ * Con Supabase como fuente, los banners son SIEMPRE los de la base (aunque no haya ninguno):
+ * así borrar el último banner no hace reaparecer copias viejas del navegador.
  */
 export const getKinielaData = async (): Promise<KinielaDataState> => {
   const client = getSupabase();
@@ -449,16 +225,18 @@ export const getKinielaData = async (): Promise<KinielaDataState> => {
         client.from('banners').select('*').order('sort_order', { ascending: true }),
       ]);
 
-      const hasEdition = editionsRes.data && editionsRes.data.length > 0;
-      if (hasEdition) {
-        const localBanners = readLocalData().banners;
-        const fetchedBanners = (bannersRes.data as unknown as BannerSlide[]) || [];
+      // Los banners y campeones son lo que importa: si esas lecturas fallan, se usa la copia local.
+      if (!winnersRes.error && !bannersRes.error) {
+        const banners = ((bannersRes.data as unknown as BannerSlide[]) || []).slice();
         const state: KinielaDataState = {
-          edition: editionsRes.data[0] as KinielaEdition,
-          matches: (matchesRes.data as Match[]) || [],
+          edition:
+            editionsRes.data && editionsRes.data.length > 0
+              ? (editionsRes.data[0] as KinielaEdition)
+              : getDefaultSeed().edition,
+          matches: matchesRes.error ? [] : ((matchesRes.data as Match[]) || []),
           winners: (winnersRes.data as Winner[]) || [],
-          banners: fetchedBanners.length > 0 ? fetchedBanners : localBanners,
-          banner: (bannersRes.data && bannersRes.data[0] ? (bannersRes.data[0] as unknown as Banner) : null),
+          banners,
+          banner: banners.length > 0 ? (banners[0] as unknown as Banner) : null,
           source: 'supabase',
           lastUpdated: new Date().toISOString(),
         };
@@ -473,6 +251,7 @@ export const getKinielaData = async (): Promise<KinielaDataState> => {
         }
         return state;
       }
+      console.warn('[LigaKiniela] Supabase respondió con error, recurriendo a LocalStorage:', winnersRes.error || bannersRes.error);
     } catch (err) {
       console.warn('[LigaKiniela] Falla consultando Supabase, recurriendo a LocalStorage:', err);
     }
@@ -645,8 +424,8 @@ export const updateBanner = async (bannerUpdate: Partial<Banner>): Promise<Banne
   const current = readLocalData();
   const existingBanner = current.banner || {
     id: 'banner-default-1',
-    title: '¡Pozo Millonario!',
-    image_url: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80',
+    title: 'Promoción Liga Kiniela',
+    image_url: '',
     target_link: '#',
     is_active: true,
   };
@@ -681,52 +460,57 @@ export const updateBanner = async (bannerUpdate: Partial<Banner>): Promise<Banne
   return updatedBanner;
 };
 
+// ----------------------------------------------------------------------------
+// Escrituras de banners y campeones: si Supabase está configurado, un fallo se
+// REPORTA (no se guarda "en silencio" en el navegador, porque el público no lo vería).
+// ----------------------------------------------------------------------------
+
+const describeError = (err: unknown): string => {
+  if (err && typeof err === 'object' && 'message' in err && typeof (err as { message: unknown }).message === 'string') {
+    return (err as { message: string }).message;
+  }
+  return 'error desconocido';
+};
+
+/** Vuelve a leer la base y avisa a quienes escuchan (el panel), para no depender de copias viejas. */
+const syncFromSupabase = async (): Promise<KinielaDataState> => {
+  const fresh = await getKinielaData();
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(KINIELA_UPDATE_EVENT, { detail: fresh }));
+  }
+  return fresh;
+};
+
 /**
- * Añade un nuevo slide al Hero Billboard Slider.
+ * Añade un banner al carrusel.
+ * Solo se guardan la descripción, las dos imágenes, el orden y si está activo.
  */
 export const addBannerSlide = async (slideData: Omit<BannerSlide, 'id'>): Promise<BannerSlide> => {
-  const current = readLocalData();
   const client = getSupabase();
 
   if (client) {
-    try {
-      const payload = {
-        title: slideData.title,
-        image_url: slideData.image_url,
-        image_url_mobile: slideData.image_url_mobile || slideData.image_url,
-        button_text: slideData.button_text || 'Ver Partidos →',
-        target_section: slideData.target_section || '#partidos',
-        target_link: '#',
-        is_active: slideData.is_active ?? true,
-        sort_order: slideData.sort_order || ((current.banners || []).length + 1),
-      };
-
-      const { data, error } = await client
-        .from('banners')
-        .insert([payload])
-        .select()
-        .single();
-
-      if (!error && data) {
-        const createdSlide = data as BannerSlide;
-        current.banners = [...(current.banners || []), createdSlide];
-        current.source = 'supabase';
-        writeLocalData(current);
-        return createdSlide;
-      } else if (error) {
-        console.warn('[LigaKiniela] Error al crear banner en Supabase:', error);
-      }
-    } catch (err) {
-      console.warn('[LigaKiniela] Excepción al crear banner en Supabase, aplicando fallback local:', err);
-    }
+    const current = await getKinielaData();
+    const nextOrder = (current.banners || []).reduce((max, b) => Math.max(max, b.sort_order || 0), 0) + 1;
+    const payload = {
+      title: slideData.title,
+      image_url: slideData.image_url,
+      image_url_mobile: slideData.image_url_mobile || null,
+      target_link: '#',
+      is_active: slideData.is_active ?? true,
+      sort_order: slideData.sort_order || nextOrder,
+    };
+    const { data, error } = await client.from('banners').insert([payload]).select().single();
+    if (error || !data) throw new Error('No se pudo crear el banner: ' + describeError(error));
+    await syncFromSupabase();
+    return data as BannerSlide;
   }
 
+  const current = readLocalData();
   const newSlide: BannerSlide = {
     ...slideData,
     id: 'slide-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
     created_at: new Date().toISOString(),
   };
-
   current.banners = [...(current.banners || []), newSlide];
   current.source = 'local';
   writeLocalData(current);
@@ -734,50 +518,22 @@ export const addBannerSlide = async (slideData: Omit<BannerSlide, 'id'>): Promis
 };
 
 /**
- * Actualiza un slide existente del Hero Billboard Slider.
+ * Actualiza un banner existente.
  */
 export const updateBannerSlide = async (id: string, update: Partial<BannerSlide>): Promise<BannerSlide> => {
-  const current = readLocalData();
   const client = getSupabase();
 
-  if (client && !id.startsWith('slide-default')) {
-    try {
-      const { data, error } = await client
-        .from('banners')
-        .update(update)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (!error && data) {
-        const updatedSlide = data as BannerSlide;
-        const index = (current.banners || []).findIndex((s) => s.id === id);
-        if (index !== -1) {
-          current.banners[index] = updatedSlide;
-        } else {
-          current.banners = [...(current.banners || []), updatedSlide];
-        }
-        current.source = 'supabase';
-        writeLocalData(current);
-        return updatedSlide;
-      } else if (error) {
-        console.warn('[LigaKiniela] Error al actualizar banner en Supabase:', error);
-      }
-    } catch (err) {
-      console.warn('[LigaKiniela] Excepción al actualizar banner en Supabase:', err);
-    }
+  if (client) {
+    const { data, error } = await client.from('banners').update(update).eq('id', id).select().single();
+    if (error || !data) throw new Error('No se pudo actualizar el banner: ' + describeError(error));
+    await syncFromSupabase();
+    return data as BannerSlide;
   }
 
+  const current = readLocalData();
   const index = (current.banners || []).findIndex((s) => s.id === id);
-  if (index === -1) {
-    throw new Error(`Banner con id ${id} no encontrado.`);
-  }
-
-  const updated: BannerSlide = {
-    ...current.banners[index],
-    ...update,
-  };
-
+  if (index === -1) throw new Error('Banner con id ' + id + ' no encontrado.');
+  const updated: BannerSlide = { ...current.banners[index], ...update };
   current.banners[index] = updated;
   current.source = 'local';
   writeLocalData(current);
@@ -785,25 +541,45 @@ export const updateBannerSlide = async (id: string, update: Partial<BannerSlide>
 };
 
 /**
- * Elimina un slide del Hero Billboard Slider.
+ * Cambia el orden de varios banners a la vez (cada par es id + nueva posición).
  */
-export const deleteBannerSlide = async (id: string): Promise<boolean> => {
-  const current = readLocalData();
+export const reorderBannerSlides = async (orders: { id: string; sort_order: number }[]): Promise<void> => {
   const client = getSupabase();
-
-  if (client && !id.startsWith('slide-default')) {
-    try {
-      const { error } = await client.from('banners').delete().eq('id', id);
-      if (error) {
-        console.warn('[LigaKiniela] Error al eliminar banner en Supabase:', error);
-      }
-    } catch (err) {
-      console.warn('[LigaKiniela] Excepción al eliminar banner en Supabase:', err);
-    }
+  if (client) {
+    const results = await Promise.all(
+      orders.map((o) => client.from('banners').update({ sort_order: o.sort_order }).eq('id', o.id))
+    );
+    const failed = results.find((r) => r.error);
+    if (failed) throw new Error('No se pudo cambiar el orden: ' + describeError(failed.error));
+    await syncFromSupabase();
+    return;
   }
 
+  const current = readLocalData();
+  current.banners = (current.banners || []).map((b) => {
+    const o = orders.find((x) => x.id === b.id);
+    return o ? { ...b, sort_order: o.sort_order } : b;
+  });
+  current.source = 'local';
+  writeLocalData(current);
+};
+
+/**
+ * Elimina un banner del carrusel.
+ */
+export const deleteBannerSlide = async (id: string): Promise<boolean> => {
+  const client = getSupabase();
+
+  if (client) {
+    const { error } = await client.from('banners').delete().eq('id', id);
+    if (error) throw new Error('No se pudo eliminar el banner: ' + describeError(error));
+    await syncFromSupabase();
+    return true;
+  }
+
+  const current = readLocalData();
   current.banners = (current.banners || []).filter((s) => s.id !== id);
-  current.source = 'supabase';
+  current.source = 'local';
   writeLocalData(current);
   return true;
 };
@@ -812,34 +588,21 @@ export const deleteBannerSlide = async (id: string): Promise<boolean> => {
  * Añade un ganador al Salón de Campeones.
  */
 export const addWinner = async (winnerData: Omit<Winner, 'id'>): Promise<Winner> => {
-  const current = readLocalData();
+  const client = getSupabase();
 
-  if (supabaseInstance) {
-    try {
-      const { data, error } = await supabaseInstance
-        .from('winners')
-        .insert([winnerData])
-        .select()
-        .single();
-
-      if (!error && data) {
-        const newWinner = data as Winner;
-        current.winners.unshift(newWinner);
-        current.source = 'supabase';
-        writeLocalData(current);
-        return newWinner;
-      }
-    } catch (err) {
-      console.warn('[LigaKiniela] Error al registrar ganador en Supabase, aplicando fallback local:', err);
-    }
+  if (client) {
+    const { data, error } = await client.from('winners').insert([winnerData]).select().single();
+    if (error || !data) throw new Error('No se pudo registrar el campeón: ' + describeError(error));
+    await syncFromSupabase();
+    return data as Winner;
   }
 
+  const current = readLocalData();
   const newWinner: Winner = {
     ...winnerData,
     id: 'win-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
     created_at: new Date().toISOString(),
   };
-
   current.winners.unshift(newWinner);
   current.source = 'local';
   writeLocalData(current);
@@ -850,22 +613,16 @@ export const addWinner = async (winnerData: Omit<Winner, 'id'>): Promise<Winner>
  * Elimina un ganador por ID.
  */
 export const deleteWinner = async (id: string): Promise<boolean> => {
-  const current = readLocalData();
+  const client = getSupabase();
 
-  if (supabaseInstance) {
-    try {
-      const { error } = await supabaseInstance.from('winners').delete().eq('id', id);
-      if (!error) {
-        current.winners = current.winners.filter((w) => w.id !== id);
-        current.source = 'supabase';
-        writeLocalData(current);
-        return true;
-      }
-    } catch (err) {
-      console.warn('[LigaKiniela] Error al eliminar ganador en Supabase, aplicando fallback local:', err);
-    }
+  if (client) {
+    const { error } = await client.from('winners').delete().eq('id', id);
+    if (error) throw new Error('No se pudo eliminar el campeón: ' + describeError(error));
+    await syncFromSupabase();
+    return true;
   }
 
+  const current = readLocalData();
   current.winners = current.winners.filter((w) => w.id !== id);
   current.source = 'local';
   writeLocalData(current);
@@ -876,36 +633,18 @@ export const deleteWinner = async (id: string): Promise<boolean> => {
  * Actualiza un ganador existente.
  */
 export const updateWinner = async (id: string, winnerUpdate: Partial<Winner>): Promise<Winner> => {
-  const current = readLocalData();
+  const client = getSupabase();
 
-  if (supabaseInstance) {
-    try {
-      const { data, error } = await supabaseInstance
-        .from('winners')
-        .update(winnerUpdate)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (!error && data) {
-        const updated = data as Winner;
-        current.winners = current.winners.map((w) => (w.id === id ? updated : w));
-        current.source = 'supabase';
-        writeLocalData(current);
-        return updated;
-      }
-    } catch (err) {
-      console.warn('[LigaKiniela] Error al actualizar ganador en Supabase, aplicando fallback local:', err);
-    }
+  if (client) {
+    const { data, error } = await client.from('winners').update(winnerUpdate).eq('id', id).select().single();
+    if (error || !data) throw new Error('No se pudo actualizar el campeón: ' + describeError(error));
+    await syncFromSupabase();
+    return data as Winner;
   }
 
+  const current = readLocalData();
   const existing = current.winners.find((w) => w.id === id);
-  const updated: Winner = {
-    ...(existing || ({} as Winner)),
-    ...winnerUpdate,
-    id,
-  };
-
+  const updated: Winner = { ...(existing || ({} as Winner)), ...winnerUpdate, id };
   current.winners = current.winners.map((w) => (w.id === id ? updated : w));
   current.source = 'local';
   writeLocalData(current);
@@ -913,7 +652,7 @@ export const updateWinner = async (id: string, winnerUpdate: Partial<Winner>): P
 };
 
 /**
- * Actualiza los textos y copys de los módulos de la web.
+ * (Antiguo) Actualiza los textos de la web. La landing ya no los lee: se conserva solo por compatibilidad.
  */
 export const updateSiteCopys = async (copysUpdate: Partial<SiteCopys>): Promise<SiteCopys> => {
   const current = readLocalData();
@@ -937,8 +676,74 @@ export const updateSiteCopys = async (copysUpdate: Partial<SiteCopys>): Promise<
   return updatedCopys;
 };
 
+// ----------------------------------------------------------------------------
+// Textos antiguos (site_copys): solo lectura y borrado para que el cliente los revise (Q16).
+// ----------------------------------------------------------------------------
+
+export interface StoredCopys {
+  /** ok = la tabla existe; missing = la tabla no existe en la base; error = no se pudo leer. */
+  database: { status: 'ok' | 'missing' | 'error'; values: Record<string, string>; message?: string };
+  /** Textos de este navegador que difieren de los de fábrica. */
+  browser: Record<string, string>;
+}
+
+const COPYS_META_KEYS = ['id', 'created_at', 'updated_at'];
+
+export const loadStoredCopys = async (): Promise<StoredCopys> => {
+  const result: StoredCopys = { database: { status: 'ok', values: {} }, browser: {} };
+
+  const client = getSupabase();
+  if (!client) {
+    result.database = { status: 'error', values: {}, message: 'No hay conexión configurada con la base de datos.' };
+  } else {
+    try {
+      const { data, error } = await client.from('site_copys').select('*');
+      if (error) {
+        const msg = describeError(error);
+        const code = (error as { code?: string }).code;
+        const missing = code === 'PGRST205' || code === '42P01' || /schema cache|does not exist/i.test(msg);
+        result.database = { status: missing ? 'missing' : 'error', values: {}, message: msg };
+      } else {
+        const values: Record<string, string> = {};
+        for (const row of (data || []) as Record<string, unknown>[]) {
+          for (const [k, v] of Object.entries(row)) {
+            if (COPYS_META_KEYS.includes(k)) continue;
+            if (typeof v === 'string' && v.trim() !== '') values[k] = v;
+          }
+        }
+        result.database = { status: 'ok', values };
+      }
+    } catch (err) {
+      result.database = { status: 'error', values: {}, message: describeError(err) };
+    }
+  }
+
+  const local = readLocalData().copys;
+  if (local) {
+    for (const [k, v] of Object.entries(local)) {
+      const def = (DEFAULT_COPYS as Record<string, string | undefined>)[k];
+      if (typeof v === 'string' && v.trim() !== '' && v !== def) result.browser[k] = v;
+    }
+  }
+  return result;
+};
+
+/** Borra los textos guardados: la fila de la base (si existe la tabla) y los cambios de este navegador. */
+export const deleteStoredCopys = async (): Promise<void> => {
+  const client = getSupabase();
+  if (client) {
+    const { error } = await client.from('site_copys').delete().eq('id', 'main_copys');
+    const code = error ? (error as { code?: string }).code : undefined;
+    const missing = code === 'PGRST205' || code === '42P01';
+    if (error && !missing) throw new Error('No se pudieron borrar los textos de la base: ' + describeError(error));
+  }
+  const current = readLocalData();
+  current.copys = DEFAULT_COPYS;
+  writeLocalData(current);
+};
+
 /**
- * Restablece todos los datos al estado de prueba por defecto.
+ * Restablece la copia local del navegador (no toca la base de datos).
  */
 export const resetToDefault = async (): Promise<KinielaDataState> => {
   const freshSeed = getDefaultSeed();
@@ -956,4 +761,3 @@ export const formatBs = (amount: number | undefined | null): string => {
   }
   return new Intl.NumberFormat('es-VE').format(amount) + ' Bs';
 };
-

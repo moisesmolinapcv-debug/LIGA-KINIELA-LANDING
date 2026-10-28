@@ -1,403 +1,442 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { KinielaEdition } from '@/types/kiniela';
-import { formatBs } from '@/lib/kiniela-store';
-import { Trophy, Calendar, Clock, Sparkles, Check, Save, Ticket, Coins } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Trophy, Sparkles, Ticket, Clock, PencilLine, Undo2, Save, Info, ChevronDown, ListChecks } from 'lucide-react';
+import type { Kiniela } from '../../types/kinielas';
+import { formatBs } from '../../lib/kiniela-store';
+import { formatDateTimeVE } from '../../lib/kinielas/time';
+import { stripEmojis } from '../../lib/kinielas/normalize';
+import {
+  deletePoolOverride,
+  savePoolOverride,
+  type PoolOverrideInput,
+  type PoolOverrideRecord,
+} from '../../lib/kinielas/admin-write';
+import type { AdminKinielas, Notify } from './useAdminKinielas';
+import { STATUS_TEXT } from './useAdminKinielas';
+import { KinielaPicker } from './KinielaPicker';
+import { ConfirmDialog } from './ModalShell';
+import { BTN_GHOST, BTN_PRIMARY, CARD, HELP, INPUT, LABEL, SPINNER } from './ui';
 
 interface EditionTabProps {
-  edition: KinielaEdition;
-  onSave: (updated: Partial<KinielaEdition>) => Promise<void>;
+  admin: AdminKinielas;
+  notify: Notify;
 }
 
-// Helpers para inputs datetime-local (formato: YYYY-MM-DDTHH:mm)
-const toLocalInput = (iso?: string): string => {
-  if (!iso) return '';
-  try {
-    const d = new Date(iso);
-    if (isNaN(d.getTime())) return '';
-    const pad = (n: number) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  } catch {
-    return '';
-  }
-};
+type FieldKey = 'title' | 'prizeBs' | 'ticketPriceBs';
 
-const toIsoString = (localValue: string): string => {
-  if (!localValue) return new Date().toISOString();
-  try {
-    const d = new Date(localValue);
-    return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
-  } catch {
-    return new Date().toISOString();
-  }
-};
+/** Convierte "300.000", "1.500.000,50" o "1500" a número. null = texto vacío; NaN = no válido. */
+export function parseBs(text: string): number | null {
+  const t = text.replace(/bs/gi, '').replace(/\s/g, '');
+  if (t === '') return null;
+  if (/^\d{1,3}(\.\d{3})+(,\d{1,2})?$/.test(t)) return Number(t.replace(/\./g, '').replace(',', '.'));
+  if (/^\d+(,\d{1,2})?$/.test(t)) return Number(t.replace(',', '.'));
+  if (/^\d+(\.\d{1,2})?$/.test(t)) return Number(t);
+  return NaN;
+}
 
-const TITLE_PRESETS = [
-  'KINIELA MILLONARIA',
-  'KINIELA CHAMPIONS LEAGUE',
-  'KINIELA DOMINGUERA',
-  'KINIELA VINOTINTO',
-  'KINIELA LIBERTADORES',
-  'EDICIÓN CLÁSICO DE ORO',
-];
+const numToText = (n: number | null): string =>
+  n === null ? '' : new Intl.NumberFormat('es-VE', { maximumFractionDigits: 2 }).format(n);
 
-export const EditionTab: React.FC<EditionTabProps> = ({ edition, onSave }) => {
-  const [formData, setFormData] = useState({
-    title: edition.title || 'KINIELA MILLONARIA',
-    edition_number: edition.edition_number || 'Edición Especial #24',
-    ticket_price_bs: edition.ticket_price_bs ?? 1000,
-    prize_amount_bs: edition.prize_amount_bs ?? 1500000,
-    start_date: toLocalInput(edition.start_date),
-    end_date: toLocalInput(edition.end_date),
-    is_active: edition.is_active ?? true,
-  });
+const HandChip: React.FC = () => (
+  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-kiniela-gold/20 border border-kiniela-gold/50 text-kiniela-gold text-xs font-bold whitespace-nowrap">
+    <PencilLine className="w-3 h-3" aria-hidden="true" />
+    Editado a mano
+  </span>
+);
 
-  const [isSaving, setIsSaving] = useState(false);
-  const [hasSavedRecently, setHasSavedRecently] = useState(false);
+export const EditionTab: React.FC<EditionTabProps> = ({ admin, notify }) => {
+  const { selected, manual, reloadManual, refresh } = admin;
+  const poolId = selected?.id ?? null;
+  const stored: PoolOverrideRecord | null = useMemo(
+    () => (poolId === null ? null : manual.overrides.find((o) => o.poolId === poolId) ?? null),
+    [manual.overrides, poolId]
+  );
 
-  // Sincronizar si cambia externamente
+  const [title, setTitle] = useState('');
+  const [prize, setPrize] = useState('');
+  const [ticket, setTicket] = useState('');
+  const [notes, setNotes] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [confirmAll, setConfirmAll] = useState(false);
+  const [busyAll, setBusyAll] = useState(false);
+  const [revertingField, setRevertingField] = useState<FieldKey | null>(null);
+
+  // El formulario refleja lo guardado cada vez que cambia la Kiniela o la fila guardada
+  // (la llave es el contenido guardado, para no borrar lo que se está escribiendo si se recarga otra cosa)
+  const storedKey = JSON.stringify(stored);
   useEffect(() => {
-    setFormData({
-      title: edition.title || 'KINIELA MILLONARIA',
-      edition_number: edition.edition_number || 'Edición Especial #24',
-      ticket_price_bs: edition.ticket_price_bs ?? 1000,
-      prize_amount_bs: edition.prize_amount_bs ?? 1500000,
-      start_date: toLocalInput(edition.start_date),
-      end_date: toLocalInput(edition.end_date),
-      is_active: edition.is_active ?? true,
-    });
-  }, [edition]);
+    setTitle(stored?.title ?? '');
+    setPrize(numToText(stored?.prizeBs ?? null));
+    setTicket(numToText(stored?.ticketPriceBs ?? null));
+    setNotes(stored?.notes ?? '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [poolId, storedKey]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const prizeNum = parseBs(prize);
+  const ticketNum = parseBs(ticket);
+  const errors: Partial<Record<FieldKey | 'notes', string>> = {};
+  if (title.trim().length > 80) errors.title = 'El título es muy largo (máximo 80 letras).';
+  if (prizeNum !== null && (Number.isNaN(prizeNum) || prizeNum < 0 || prizeNum > 1e12)) {
+    errors.prizeBs = 'Escribe solo números, por ejemplo 300.000 o 1.500.000.';
+  }
+  if (ticketNum !== null && (Number.isNaN(ticketNum) || ticketNum < 0 || ticketNum > 1e9)) {
+    errors.ticketPriceBs = 'Escribe solo números, por ejemplo 1.000. Escribe 0 si el ticket es gratis.';
+  }
+  if (notes.trim().length > 300) errors.notes = 'La nota es muy larga (máximo 300 letras).';
+  const hasErrors = Object.keys(errors).length > 0;
+
+  const current: PoolOverrideInput = {
+    title: title.trim() || null,
+    prizeBs: prizeNum === null || Number.isNaN(prizeNum) ? null : prizeNum,
+    ticketPriceBs: ticketNum === null || Number.isNaN(ticketNum) ? null : ticketNum,
+    notes: notes.trim() || null,
+  };
+  const storedInput: PoolOverrideInput = {
+    title: stored?.title ?? null,
+    prizeBs: stored?.prizeBs ?? null,
+    ticketPriceBs: stored?.ticketPriceBs ?? null,
+    notes: stored?.notes ?? null,
+  };
+  const dirty = JSON.stringify(current) !== JSON.stringify(storedInput);
+  const hasAnyStored = stored !== null;
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSaving(true);
+    if (poolId === null || hasErrors) return;
+    setSaving(true);
     try {
-      await onSave({
-        title: formData.title.trim(),
-        edition_number: formData.edition_number.trim(),
-        ticket_price_bs: Number(formData.ticket_price_bs),
-        prize_amount_bs: Number(formData.prize_amount_bs),
-        start_date: toIsoString(formData.start_date),
-        end_date: toIsoString(formData.end_date),
-        is_active: Boolean(formData.is_active),
-      });
-      setHasSavedRecently(true);
-      setTimeout(() => setHasSavedRecently(false), 3000);
+      await savePoolOverride(poolId, current);
+      await reloadManual();
+      void refresh();
+      notify('success', 'Cambios guardados', 'Pueden tardar hasta 1 minuto en verse en la web.');
+    } catch (err) {
+      notify('error', 'No se pudo guardar', err instanceof Error ? err.message : 'Inténtalo de nuevo.');
     } finally {
-      setIsSaving(false);
+      setSaving(false);
     }
   };
 
+  const revertField = async (field: FieldKey) => {
+    if (poolId === null) return;
+    setRevertingField(field);
+    try {
+      await savePoolOverride(poolId, { ...storedInput, [field]: null });
+      await reloadManual();
+      void refresh();
+      notify('info', 'Vuelve el dato automático', 'Pueden pasar hasta 1 minuto para verlo en la web.');
+    } catch (err) {
+      notify('error', 'No se pudo quitar el cambio', err instanceof Error ? err.message : 'Inténtalo de nuevo.');
+    } finally {
+      setRevertingField(null);
+    }
+  };
+
+  const revertAll = async () => {
+    if (poolId === null) return;
+    setBusyAll(true);
+    try {
+      await deletePoolOverride(poolId);
+      await reloadManual();
+      void refresh();
+      setConfirmAll(false);
+      notify('info', 'Vuelven los datos automáticos', 'Pueden pasar hasta 1 minuto para verlos en la web.');
+    } catch (err) {
+      notify('error', 'No se pudo quitar el cambio', err instanceof Error ? err.message : 'Inténtalo de nuevo.');
+    } finally {
+      setBusyAll(false);
+    }
+  };
+
+  const k: Kiniela | null = selected;
+  const flags = k?.overrides ?? {};
+  const autoTitle = k ? stripEmojis(k.code) || k.code : '';
+
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Encabezado descriptivo */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#1a2785]">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight flex items-center gap-2 font-rockwell">
-            <Trophy className="w-6 h-6 text-kiniela-gold" />
-            <span>Configuración de la Edición Actual</span>
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-300 mt-1">
-            Actualiza el nombre semanal de la kiniela, los montos en Bolívares (Bs) y el cronograma de cierre.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span
-            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
-              formData.is_active
-                ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-500/40'
-                : 'bg-rose-950/60 text-rose-400 border border-rose-500/40'
-            }`}
-          >
-            <span
-              className={`w-2 h-2 rounded-full ${formData.is_active ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`}
-            />
-            {formData.is_active ? 'Edición Publicada' : 'Edición Pausada'}
-          </span>
-        </div>
+    <div className="space-y-6">
+      <div className="pb-4 border-b border-[#1a2785]">
+        <h2 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight flex items-center gap-2 font-rockwell">
+          <Trophy className="w-6 h-6 text-kiniela-gold" aria-hidden="true" />
+          <span>Kiniela activa</span>
+        </h2>
+        <p className="text-sm text-slate-200 mt-1 max-w-3xl">
+          El nombre, el premio, el costo del ticket y el cierre llegan solos desde el servidor oficial. Solo si algo está
+          mal puedes cambiarlo a mano más abajo; ese cambio gana sobre el dato automático.
+        </p>
       </div>
 
-      {/* Formulario y Vista Previa */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* Formulario de Parámetros */}
-        <div className="lg:col-span-2 space-y-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            
-            {/* Título de la Kiniela y Presets */}
-            <div className="bg-[#060e4f]/70 border border-[#1a2785] rounded-2xl p-5 space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                  Título Semanal de la Kiniela
-                </label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="Ej: KINIELA MILLONARIA"
-                  className="w-full px-4 py-3 bg-[#00063E] border border-[#1a2785] rounded-xl text-white font-rockwell font-bold text-lg tracking-wide focus:outline-none focus:border-kiniela-gold focus:ring-1 focus:ring-kiniela-gold transition-all"
-                />
-              </div>
+      <KinielaPicker admin={admin} />
 
-              {/* Presets Rápidos */}
+      {k && (
+        <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+          {/* Lectura: lo que trae el servidor oficial */}
+          <section aria-labelledby="ed-oficial" className={`${CARD} xl:col-span-2 space-y-4`}>
+            <h3 id="ed-oficial" className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2 border-b border-[#1a2785] pb-2">
+              <Info className="w-4 h-4 text-kiniela-gold" aria-hidden="true" />
+              Lo que muestra la web ahora
+            </h3>
+
+            <dl className="space-y-3 text-sm">
               <div>
-                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-2">
-                  Sugerencias Rápidas:
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  {TITLE_PRESETS.map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, title: preset })}
-                      className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${
-                        formData.title === preset
-                          ? 'bg-kiniela-gold text-kiniela-navy border-kiniela-gold font-bold shadow-md'
-                          : 'bg-[#0c186b]/60 text-slate-300 border-[#1a2785] hover:bg-[#1a2785] hover:text-white'
-                      }`}
-                    >
-                      {preset}
-                    </button>
+                <dt className="text-xs font-bold text-slate-300 uppercase tracking-wider flex flex-wrap items-center gap-2">
+                  Nombre {flags.title && <HandChip />}
+                </dt>
+                <dd className="font-rockwell font-black text-lg text-white">{k.name}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-bold text-slate-300 uppercase tracking-wider flex flex-wrap items-center gap-2">
+                  Premio total {flags.prizeBs && <HandChip />}
+                </dt>
+                <dd className="font-rockwell font-black text-2xl text-kiniela-gold">{formatBs(k.prizeBs)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-bold text-slate-300 uppercase tracking-wider flex flex-wrap items-center gap-2">
+                  Costo del ticket {flags.ticketPriceBs && <HandChip />}
+                </dt>
+                <dd className="font-bold text-white text-lg">{k.isFree ? 'Gratis' : formatBs(k.ticketPriceBs)}</dd>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <dt className="text-xs font-bold text-slate-300 uppercase tracking-wider">Partidos</dt>
+                  <dd className="text-white font-bold">{k.matches.length}{k.totalMatches !== k.matches.length ? ` de ${k.totalMatches}` : ''}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-bold text-slate-300 uppercase tracking-wider">Estado</dt>
+                  <dd className="text-white font-bold">{STATUS_TEXT[k.status]}</dd>
+                </div>
+              </div>
+              <div>
+                <dt className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-kiniela-gold" aria-hidden="true" />
+                  Ventas
+                </dt>
+                <dd className="text-slate-100">
+                  Abren: <span className="font-bold">{formatDateTimeVE(k.salesStart) || 'sin dato'}</span>
+                  <br />
+                  Cierran: <span className="font-bold">{formatDateTimeVE(k.closesAt) || 'sin dato'}</span>
+                  <span className="text-slate-300"> (hora de Venezuela, 1 minuto antes del cierre oficial)</span>
+                </dd>
+              </div>
+            </dl>
+
+            {k.warnings.length > 0 && (
+              <details className="rounded-xl border border-amber-500/40 bg-amber-950/30 p-3 text-sm text-amber-100">
+                <summary className="cursor-pointer min-h-[44px] flex items-center justify-between gap-2 font-bold">
+                  <span>El servidor oficial trae {k.warnings.length} aviso{k.warnings.length === 1 ? '' : 's'}</span>
+                  <ChevronDown className="w-4 h-4" aria-hidden="true" />
+                </summary>
+                <ul className="list-disc pl-5 space-y-1 mt-1">
+                  {k.warnings.map((w, i) => (
+                    <li key={i}>{w}</li>
                   ))}
+                </ul>
+              </details>
+            )}
+
+            <details className="rounded-xl border border-[#1a2785] bg-[#00063E]/60 p-3 text-sm">
+              <summary className="cursor-pointer min-h-[44px] flex items-center justify-between gap-2 font-bold text-white">
+                <span className="flex items-center gap-2">
+                  <ListChecks className="w-4 h-4 text-kiniela-gold" aria-hidden="true" />
+                  Partidos de esta Kiniela ({k.matches.length})
+                </span>
+                <ChevronDown className="w-4 h-4" aria-hidden="true" />
+              </summary>
+              <ol className="mt-1 space-y-1 text-slate-100">
+                {k.matches.map((m) => (
+                  <li key={m.key}>
+                    <span className="text-slate-300 font-mono text-xs mr-1.5">{m.index}.</span>
+                    {m.homeTeam.name} <span className="text-slate-300">vs</span> {m.awayTeam.name}
+                  </li>
+                ))}
+              </ol>
+              <p className={`${HELP} mt-2`}>Para cargar hora, liga y resultados usa la pestaña &quot;Partidos&quot;.</p>
+            </details>
+          </section>
+
+          {/* Escritura: cambios a mano */}
+          <section aria-labelledby="ed-manual" className="xl:col-span-3">
+            <form onSubmit={handleSave} className={`${CARD} space-y-5`} noValidate>
+              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#1a2785] pb-3">
+                <div>
+                  <h3 id="ed-manual" className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    <PencilLine className="w-4 h-4 text-kiniela-gold" aria-hidden="true" />
+                    Cambiar a mano
+                  </h3>
+                  <p className={`${HELP} mt-1`}>
+                    Deja un campo vacío para usar el dato automático. Lo que escribas aquí se verá en la web en lugar del
+                    dato del servidor.
+                  </p>
                 </div>
+                {hasAnyStored && <HandChip />}
               </div>
 
-              {/* Número o Denominación de Edición */}
+              {/* Nombre */}
               <div>
-                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                  Número o Denominación de Edición
-                </label>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <label htmlFor="ov-title" className={LABEL}>
+                    Nombre de la Kiniela {stored?.title && <HandChip />}
+                  </label>
+                  {stored?.title && (
+                    <button type="button" onClick={() => revertField('title')} disabled={revertingField !== null} className="min-h-[44px] px-2 text-xs font-bold text-kiniela-gold hover:underline inline-flex items-center gap-1">
+                      <Undo2 className="w-3.5 h-3.5" aria-hidden="true" />
+                      Volver al dato automático
+                    </button>
+                  )}
+                </div>
                 <input
+                  id="ov-title"
                   type="text"
-                  value={formData.edition_number}
-                  onChange={(e) => setFormData({ ...formData, edition_number: e.target.value })}
-                  placeholder="Ej: Edición Especial #24"
-                  className="w-full px-4 py-2.5 bg-[#00063E] border border-[#1a2785] rounded-xl text-white font-semibold text-sm focus:outline-none focus:border-kiniela-gold transition-all"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  maxLength={100}
+                  placeholder="Automático"
+                  aria-invalid={Boolean(errors.title)}
+                  aria-describedby="ov-title-help"
+                  className={INPUT}
                 />
+                <p id="ov-title-help" className={`${HELP} mt-1`}>
+                  Dato automático: <strong className="text-white">{autoTitle}</strong>
+                </p>
+                {errors.title && <p role="alert" className="text-xs text-rose-300 mt-1">{errors.title}</p>}
               </div>
-            </div>
 
-            {/* Montos Exclusivamente en Bolívares (Bs) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              
-              {/* Pozo Acumulado (Premio en Bs) */}
-              <div className="bg-[#060e4f]/70 border border-[#1a2785] rounded-2xl p-5 space-y-3">
-                <div className="flex items-center gap-2 text-kiniela-gold border-b border-[#1a2785] pb-2">
-                  <Sparkles className="w-4 h-4 text-kiniela-gold" />
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-white">
-                    Gran Pozo Acumulado (Premio)
-                  </h3>
-                </div>
-
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                {/* Premio */}
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">
-                    Monto en Bolívares (Bs)
-                  </label>
-                  <div className="relative">
-                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-kiniela-gold font-bold text-sm font-mono">
-                      Bs
-                    </span>
-                    <input
-                      type="number"
-                      step="1000"
-                      min="0"
-                      value={formData.prize_amount_bs}
-                      onChange={(e) => setFormData({ ...formData, prize_amount_bs: parseFloat(e.target.value) || 0 })}
-                      placeholder="1500000"
-                      className="w-full pl-10 pr-3 py-2.5 bg-[#00063E] border border-[#1a2785] rounded-xl text-kiniela-gold font-mono font-black text-lg focus:outline-none focus:border-kiniela-gold"
-                    />
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <label htmlFor="ov-prize" className={`${LABEL} flex items-center gap-1.5`}>
+                      <Sparkles className="w-3.5 h-3.5 text-kiniela-gold" aria-hidden="true" />
+                      Premio total (Bs)
+                    </label>
+                    {stored?.prizeBs !== null && stored?.prizeBs !== undefined && (
+                      <button type="button" onClick={() => revertField('prizeBs')} disabled={revertingField !== null} className="min-h-[44px] px-2 text-xs font-bold text-kiniela-gold hover:underline inline-flex items-center gap-1">
+                        <Undo2 className="w-3.5 h-3.5" aria-hidden="true" />
+                        Volver al automático
+                      </button>
+                    )}
                   </div>
-                  <p className="text-[11px] text-slate-400 mt-1">
-                    Visualización: <span className="text-kiniela-gold font-bold">{formatBs(formData.prize_amount_bs)}</span>
+                  <input
+                    id="ov-prize"
+                    type="text"
+                    inputMode="decimal"
+                    value={prize}
+                    onChange={(e) => setPrize(e.target.value)}
+                    placeholder="Automático"
+                    aria-invalid={Boolean(errors.prizeBs)}
+                    aria-describedby="ov-prize-help"
+                    className={`${INPUT} font-mono font-bold text-kiniela-gold`}
+                  />
+                  <p id="ov-prize-help" className={`${HELP} mt-1`}>
+                    {flags.prizeBs ? (
+                      <>El dato automático se vuelve a mostrar al quitar el cambio.</>
+                    ) : (
+                      <>Dato automático: <strong className="text-white">{formatBs(k.prizeBs)}</strong>.</>
+                    )}{' '}
+                    {prize && prizeNum !== null && !Number.isNaN(prizeNum) && (
+                      <>Se verá como <strong className="text-kiniela-gold">{formatBs(prizeNum)}</strong>.</>
+                    )}
                   </p>
-                </div>
-              </div>
-
-              {/* Precio del Ticket en Bs */}
-              <div className="bg-[#060e4f]/70 border border-[#1a2785] rounded-2xl p-5 space-y-3">
-                <div className="flex items-center gap-2 text-kiniela-gold border-b border-[#1a2785] pb-2">
-                  <Ticket className="w-4 h-4" />
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-white">
-                    Precio del Ticket
-                  </h3>
+                  {errors.prizeBs && <p role="alert" className="text-xs text-rose-300 mt-1">{errors.prizeBs}</p>}
                 </div>
 
+                {/* Ticket */}
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">
-                    Costo en Bolívares (Bs)
-                  </label>
-                  <div className="relative">
-                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-white font-bold text-sm font-mono">
-                      Bs
-                    </span>
-                    <input
-                      type="number"
-                      step="10"
-                      min="0"
-                      value={formData.ticket_price_bs}
-                      onChange={(e) => setFormData({ ...formData, ticket_price_bs: parseFloat(e.target.value) || 0 })}
-                      placeholder="1000"
-                      className="w-full pl-10 pr-3 py-2.5 bg-[#00063E] border border-[#1a2785] rounded-xl text-white font-mono font-bold text-lg focus:outline-none focus:border-kiniela-gold"
-                    />
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <label htmlFor="ov-ticket" className={`${LABEL} flex items-center gap-1.5`}>
+                      <Ticket className="w-3.5 h-3.5 text-kiniela-gold" aria-hidden="true" />
+                      Costo del ticket (Bs)
+                    </label>
+                    {stored?.ticketPriceBs !== null && stored?.ticketPriceBs !== undefined && (
+                      <button type="button" onClick={() => revertField('ticketPriceBs')} disabled={revertingField !== null} className="min-h-[44px] px-2 text-xs font-bold text-kiniela-gold hover:underline inline-flex items-center gap-1">
+                        <Undo2 className="w-3.5 h-3.5" aria-hidden="true" />
+                        Volver al automático
+                      </button>
+                    )}
                   </div>
-                  <p className="text-[11px] text-slate-400 mt-1">
-                    Visualización: <span className="text-white font-bold">{formatBs(formData.ticket_price_bs)}</span>
-                  </p>
-                </div>
-              </div>
-
-            </div>
-
-            {/* Fechas y Horas de Inicio y Cierre */}
-            <div className="bg-[#060e4f]/70 border border-[#1a2785] rounded-2xl p-5 space-y-4">
-              <div className="flex items-center gap-2 border-b border-[#1a2785] pb-2 text-white">
-                <Calendar className="w-4 h-4 text-kiniela-gold" />
-                <h3 className="text-sm font-bold uppercase tracking-wider">
-                  Cronograma Oficial de la Jornada
-                </h3>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1.5 flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Fecha y Hora de Inicio</span>
-                  </label>
                   <input
-                    type="datetime-local"
-                    value={formData.start_date}
-                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                    className="w-full px-3 py-2.5 bg-[#00063E] border border-[#1a2785] rounded-xl text-white text-sm focus:outline-none focus:border-kiniela-gold font-mono"
+                    id="ov-ticket"
+                    type="text"
+                    inputMode="decimal"
+                    value={ticket}
+                    onChange={(e) => setTicket(e.target.value)}
+                    placeholder="Automático"
+                    aria-invalid={Boolean(errors.ticketPriceBs)}
+                    aria-describedby="ov-ticket-help"
+                    className={`${INPUT} font-mono font-bold`}
                   />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1.5 flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-kiniela-gold" />
-                    <span>Fecha y Hora de Cierre (Límite)</span>
-                  </label>
-                  <input
-                    type="datetime-local"
-                    value={formData.end_date}
-                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                    className="w-full px-3 py-2.5 bg-[#00063E] border border-[#1a2785] rounded-xl text-white text-sm focus:outline-none focus:border-kiniela-gold font-mono"
-                  />
-                  <p className="text-[11px] text-slate-400 mt-1">
-                    El contador de la landing descuenta en tiempo real hacia esta fecha.
+                  <p id="ov-ticket-help" className={`${HELP} mt-1`}>
+                    {flags.ticketPriceBs ? (
+                      <>El dato automático se vuelve a mostrar al quitar el cambio.</>
+                    ) : (
+                      <>Dato automático: <strong className="text-white">{k.isFree ? 'Gratis' : formatBs(k.ticketPriceBs)}</strong>.</>
+                    )}{' '}
+                    {ticket && ticketNum === 0 && <strong className="text-amber-300">Con 0 la web mostrará la Kiniela como gratuita.</strong>}
+                    {ticket && ticketNum !== null && ticketNum > 0 && !Number.isNaN(ticketNum) && (
+                      <>Se verá como <strong className="text-white">{formatBs(ticketNum)}</strong>.</>
+                    )}
                   </p>
+                  {errors.ticketPriceBs && <p role="alert" className="text-xs text-rose-300 mt-1">{errors.ticketPriceBs}</p>}
                 </div>
               </div>
-            </div>
 
-            {/* Interruptor de Visibilidad */}
-            <div className="bg-[#060e4f]/70 border border-[#1a2785] rounded-2xl p-5 flex items-center justify-between">
+              {/* Nota interna */}
               <div>
-                <span className="text-sm font-bold text-white block">Estado de Publicación</span>
-                <span className="text-xs text-slate-400">
-                  Define si esta edición está activa y visible para el público en la landing.
-                </span>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.is_active}
-                  onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                  className="sr-only peer"
+                <label htmlFor="ov-notes" className={LABEL}>
+                  Nota interna (opcional)
+                </label>
+                <textarea
+                  id="ov-notes"
+                  rows={2}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Ej: Premio corregido porque el servidor mostraba un monto viejo"
+                  className={`${INPUT} resize-y`}
                 />
-                <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-              </label>
-            </div>
-
-            {/* Botón de Guardar */}
-            <div className="pt-2">
-              <button
-                type="submit"
-                disabled={isSaving}
-                className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-kiniela-vinotinto to-[#9f2c52] hover:from-[#9f2c52] hover:to-kiniela-vinotinto text-white font-bold rounded-xl shadow-lg shadow-kiniela-vinotinto/30 border border-kiniela-gold/40 flex items-center justify-center gap-2 uppercase tracking-wider text-sm transition-all disabled:opacity-50"
-              >
-                {isSaving ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Guardando Cambios...
-                  </>
-                ) : hasSavedRecently ? (
-                  <>
-                    <Check className="w-4 h-4 text-emerald-400" />
-                    ¡Parámetros Guardados!
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4 text-kiniela-gold" />
-                    Guardar Parámetros de Edición
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {/* Vista previa en vivo (Tarjeta resumen para el administrador) */}
-        <div className="space-y-4">
-          <div className="bg-[#0c186b]/40 border border-[#1a2785] rounded-2xl p-5 sticky top-24">
-            <div className="flex items-center justify-between border-b border-[#1a2785] pb-3 mb-4">
-              <span className="text-xs font-bold uppercase tracking-wider text-kiniela-gold flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5" />
-                Vista Previa en Vivo
-              </span>
-              <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded font-mono">
-                Tarjeta Landing
-              </span>
-            </div>
-
-            {/* Tarjeta de Pozo Estilo Landing */}
-            <div className="rounded-2xl p-5 bg-gradient-to-b from-[#882445]/50 via-[#060e4f] to-[#000428] border-2 border-kiniela-gold/40 shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-kiniela-gold/10 rounded-full blur-2xl pointer-events-none" />
-
-              <div className="text-center space-y-2">
-                <span className="inline-block text-[11px] font-extrabold uppercase tracking-widest px-3 py-1 rounded-full bg-kiniela-gold/20 text-kiniela-gold border border-kiniela-gold/30">
-                  {formData.edition_number || 'Edición #24'}
-                </span>
-
-                <h3 className="font-rockwell font-black text-xl sm:text-2xl text-white tracking-wide leading-tight">
-                  {formData.title || 'KINIELA MILLONARIA'}
-                </h3>
-
-                <div className="pt-2">
-                  <span className="text-xs uppercase tracking-wider text-slate-300 font-semibold block">
-                    Gran Pozo Acumulado
-                  </span>
-                  <div className="font-rockwell font-black text-3xl sm:text-4xl text-kiniela-gold tracking-tight drop-shadow-[0_0_12px_rgba(255,175,63,0.5)]">
-                    {formatBs(formData.prize_amount_bs)}
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-slate-700/60 mt-3 p-3 rounded-xl bg-[#00063E]/80 border border-[#1a2785]">
-                  <span className="text-[10px] text-slate-400 uppercase font-semibold block">
-                    Precio del Ticket Oficial
-                  </span>
-                  <span className="text-lg font-black text-white font-mono">
-                    {formatBs(formData.ticket_price_bs)}
-                  </span>
-                </div>
-
-                {formData.end_date && (
-                  <div className="text-[11px] text-slate-400 pt-2 flex items-center justify-center gap-1">
-                    <Clock className="w-3 h-3 text-kiniela-gold" />
-                    <span>Cierra: {new Date(formData.end_date).toLocaleString('es-VE', { dateStyle: 'short', timeStyle: 'short' })}</span>
-                  </div>
-                )}
+                <p className={`${HELP} mt-1`}>Solo la ves tú en el panel; no se publica en la web.</p>
+                {errors.notes && <p role="alert" className="text-xs text-rose-300 mt-1">{errors.notes}</p>}
               </div>
-            </div>
 
-            <p className="text-[11px] text-slate-400 text-center mt-3 leading-relaxed">
-              Los cambios guardados se reflejan inmediatamente en tiempo real para todos los visitantes de la plataforma.
-            </p>
-          </div>
+              <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-3 border-t border-[#1a2785]">
+                <div className="flex flex-col gap-1">
+                  {hasAnyStored && (
+                    <button type="button" onClick={() => setConfirmAll(true)} className={BTN_GHOST}>
+                      <Undo2 className="w-4 h-4" aria-hidden="true" />
+                      Volver al dato automático (todo)
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                  {dirty && <span className="text-xs font-bold text-amber-300" role="status">Hay cambios sin guardar</span>}
+                  <button type="submit" disabled={saving || !dirty || hasErrors} className={BTN_PRIMARY}>
+                    {saving ? (
+                      <>
+                        <span className={SPINNER} aria-hidden="true" />
+                        Guardando...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4 text-kiniela-gold" aria-hidden="true" />
+                        Guardar cambios
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+              <p className={HELP}>Los cambios tardan hasta ~1 minuto en verse en la web.</p>
+            </form>
+          </section>
         </div>
+      )}
 
-      </div>
+      <ConfirmDialog
+        open={confirmAll}
+        title="¿Volver al dato automático?"
+        message="Se quitarán los cambios hechos a mano en el nombre, el premio y el ticket de esta Kiniela. La web volverá a mostrar lo que trae el servidor oficial."
+        confirmLabel="Sí, volver al automático"
+        busy={busyAll}
+        onConfirm={revertAll}
+        onCancel={() => setConfirmAll(false)}
+      />
     </div>
   );
 };

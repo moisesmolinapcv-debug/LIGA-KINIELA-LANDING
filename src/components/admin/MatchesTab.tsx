@@ -1,681 +1,507 @@
 'use client';
 
-import React, { useState } from 'react';
-import Image from 'next/image';
-import { Match, MatchStatus } from '@/types/kiniela';
+import React, { useEffect, useMemo, useState } from 'react';
+import { CalendarDays, CalendarClock, ChevronDown, ChevronUp, Clock, Info, Pencil, Save, TriangleAlert } from 'lucide-react';
+import type { KinielaMatch, MatchManualStatus } from '../../types/kinielas';
+import { formatDateTimeVE } from '../../lib/kinielas/time';
 import {
-  Plus,
-  Trash2,
-  Calendar,
-  Clock,
-  Radio,
-  CheckCircle2,
-  Hourglass,
-  Minus,
-  AlertTriangle,
-  ChevronDown,
-  ChevronUp,
-  Play,
-  CheckCircle,
-  Sparkles,
-  RefreshCw,
-  Edit3,
-} from 'lucide-react';
-import { EditMatchModal } from './EditMatchModal';
+  deleteMatchMeta,
+  isoToVeLocal,
+  saveMatchMeta,
+  veLocalToIso,
+  type MatchMetaDraft,
+  type MatchMetaRecord,
+} from '../../lib/kinielas/admin-write';
+import type { AdminKinielas, Notify } from './useAdminKinielas';
+import { KinielaPicker } from './KinielaPicker';
+import { MatchEditor } from './MatchEditor';
+import { ConfirmDialog } from './ModalShell';
+import { BTN_GHOST, BTN_PRIMARY, CARD, HELP, INPUT, LABEL, SPINNER } from './ui';
 
 interface MatchesTabProps {
-  matches: Match[];
-  onAddMatch: (newMatch: Omit<Match, 'id'>) => Promise<void>;
-  onUpdateMatch: (id: string, matchUpdate: Partial<Match>) => Promise<void>;
-  onDeleteMatch: (id: string) => Promise<void>;
+  admin: AdminKinielas;
+  notify: Notify;
 }
 
-// Helpers para inputs datetime-local
-const toLocalInput = (iso?: string): string => {
-  if (!iso) return '';
-  try {
-    const d = new Date(iso);
-    if (isNaN(d.getTime())) return '';
-    const pad = (n: number) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  } catch {
-    return '';
-  }
+const STATUS_PILL: Record<MatchManualStatus, string> = {
+  'EN ESPERA': 'bg-slate-700 text-slate-100 border-slate-500',
+  'EN VIVO': 'bg-rose-600 text-white border-rose-400',
+  FINALIZADO: 'bg-emerald-700 text-white border-emerald-400',
+  SUSPENDIDO: 'bg-amber-500 text-black border-amber-300',
+};
+const STATUS_LABEL: Record<MatchManualStatus, string> = {
+  'EN ESPERA': 'En espera',
+  'EN VIVO': 'En vivo',
+  FINALIZADO: 'Finalizado',
+  SUSPENDIDO: 'Suspendido',
 };
 
-const toIsoString = (localValue: string): string => {
-  if (!localValue) return new Date().toISOString();
-  try {
-    const d = new Date(localValue);
-    return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
-  } catch {
-    return new Date().toISOString();
+const TeamLogo: React.FC<{ url: string | null }> = ({ url }) =>
+  url ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={url}
+      alt=""
+      width={28}
+      height={28}
+      loading="lazy"
+      className="w-7 h-7 object-contain shrink-0"
+      onError={(e) => {
+        e.currentTarget.style.visibility = 'hidden';
+      }}
+    />
+  ) : (
+    <span className="w-7 h-7 shrink-0" aria-hidden="true" />
+  );
+
+interface BulkRow {
+  kickoff: string;
+  league: string;
+}
+
+export const MatchesTab: React.FC<MatchesTabProps> = ({ admin, notify }) => {
+  const { selected: k, manual, reloadManual } = admin;
+  const poolId = k?.id ?? null;
+
+  const records = useMemo(() => {
+    const map = new Map<string, MatchMetaRecord>();
+    if (poolId === null) return map;
+    for (const r of manual.meta) if (r.poolId === poolId) map.set(`${r.homeTeamId}-${r.awayTeamId}`, r);
+    return map;
+  }, [manual.meta, poolId]);
+
+  const [openKey, setOpenKey] = useState<string | null>(null);
+  const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [confirmClear, setConfirmClear] = useState<KinielaMatch | null>(null);
+  const [clearing, setClearing] = useState(false);
+
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkRows, setBulkRows] = useState<Record<string, BulkRow>>({});
+  const [bulkLeague, setBulkLeague] = useState('');
+  const [bulkDate, setBulkDate] = useState('');
+  const [bulkSaving, setBulkSaving] = useState(false);
+
+  // Al cambiar de Kiniela se cierra lo que estaba abierto
+  useEffect(() => {
+    setOpenKey(null);
+    setBulkOpen(false);
+  }, [poolId]);
+
+  const recordsKey = JSON.stringify(manual.meta.filter((r) => r.poolId === poolId).map((r) => [r.homeTeamId, r.awayTeamId, r.kickoff, r.league]));
+  // La tabla de carga masiva se llena con lo ya guardado
+  useEffect(() => {
+    if (!k) return;
+    const next: Record<string, BulkRow> = {};
+    for (const m of k.matches) {
+      const r = records.get(m.key);
+      next[m.key] = { kickoff: isoToVeLocal(r?.kickoff), league: r?.league ?? '' };
+    }
+    setBulkRows(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [k?.id, recordsKey]);
+
+  const leagueOptions = useMemo(
+    () => Array.from(new Set(Array.from(records.values()).map((r) => r.league).filter((x): x is string => Boolean(x)))),
+    [records]
+  );
+
+  if (!k) {
+    return (
+      <div className="space-y-6">
+        <TabHeading />
+        <KinielaPicker admin={admin} />
+      </div>
+    );
   }
-};
 
-// Equipos Populares con sus logos oficiales o banderas SVG
-const TEAM_PRESETS = [
-  { name: 'Venezuela (Vinotinto)', logo: 'https://api.iconify.design/twemoji:flag-venezuela.svg' },
-  { name: 'Brasil', logo: 'https://api.iconify.design/twemoji:flag-brazil.svg' },
-  { name: 'Argentina', logo: 'https://api.iconify.design/twemoji:flag-argentina.svg' },
-  { name: 'Colombia', logo: 'https://api.iconify.design/twemoji:flag-colombia.svg' },
-  { name: 'Caracas FC', logo: 'https://api.iconify.design/twemoji:flag-venezuela.svg' },
-  { name: 'Deportivo Táchira', logo: 'https://api.iconify.design/twemoji:flag-venezuela.svg' },
-  { name: 'Real Madrid', logo: 'https://api.iconify.design/emojione-v1:soccer-ball.svg' },
-  { name: 'FC Barcelona', logo: 'https://api.iconify.design/emojione-v1:soccer-ball.svg' },
-  { name: 'Manchester City', logo: 'https://api.iconify.design/emojione-v1:soccer-ball.svg' },
-  { name: 'Liverpool FC', logo: 'https://api.iconify.design/emojione-v1:soccer-ball.svg' },
-];
+  const total = k.matches.length;
+  const withTime = k.matches.filter((m) => records.get(m.key)?.kickoff).length;
+  const withLeague = k.matches.filter((m) => records.get(m.key)?.league).length;
+  const withResult = k.matches.filter((m) => records.get(m.key)?.finalResult).length;
+  const live = k.matches.filter((m) => records.get(m.key)?.status === 'EN VIVO').length;
 
-const MINUTE_PRESETS = ["15'", "45'", 'HT', "60'", "75'", "90'", 'FT'];
+  // Datos guardados que ya no corresponden a ningún partido del servidor (por ejemplo, si cambió un equipo)
+  const validKeys = new Set(k.matches.map((m) => m.key));
+  const orphans = Array.from(records.values()).filter((r) => !validKeys.has(`${r.homeTeamId}-${r.awayTeamId}`));
 
-export const MatchesTab: React.FC<MatchesTabProps> = ({
-  matches,
-  onAddMatch,
-  onUpdateMatch,
-  onDeleteMatch,
-}) => {
-  const [showAddForm, setShowAddForm] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [matchToDelete, setMatchToDelete] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [matchToEdit, setMatchToEdit] = useState<Match | null>(null);
+  const afterSave = async () => {
+    await reloadManual();
+  };
 
-  // Formulario de nuevo partido
-  const now = new Date();
-  const defaultMatchDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  const saveOne = async (m: KinielaMatch, draft: MatchMetaDraft) => {
+    setSavingKey(m.key);
+    try {
+      await saveMatchMeta(k.id, [draft]);
+      await afterSave();
+      notify('success', 'Partido guardado', `${m.homeTeam.name} vs ${m.awayTeam.name}. Puede tardar hasta 1 minuto en verse en la web.`);
+    } catch (err) {
+      notify('error', 'No se pudo guardar el partido', err instanceof Error ? err.message : 'Inténtalo de nuevo.');
+    } finally {
+      setSavingKey(null);
+    }
+  };
 
-  const [newMatch, setNewMatch] = useState({
-    home_team: '',
-    away_team: '',
-    home_logo: 'https://api.iconify.design/emojione-v1:soccer-ball.svg',
-    away_logo: 'https://api.iconify.design/emojione-v1:soccer-ball.svg',
-    match_date: toLocalInput(defaultMatchDate.toISOString()),
-    status: 'EN ESPERA' as MatchStatus,
-    home_score: 0,
-    away_score: 0,
-    minute: '',
+  const clearOne = async () => {
+    if (!confirmClear) return;
+    setClearing(true);
+    try {
+      await deleteMatchMeta(k.id, confirmClear.homeTeam.id, confirmClear.awayTeam.id);
+      await afterSave();
+      notify('info', 'Datos borrados', 'El partido vuelve a quedar sin datos manuales.');
+      setConfirmClear(null);
+      setOpenKey(null);
+    } catch (err) {
+      notify('error', 'No se pudo borrar', err instanceof Error ? err.message : 'Inténtalo de nuevo.');
+    } finally {
+      setClearing(false);
+    }
+  };
+
+  const applyBulkLeague = () => {
+    const v = bulkLeague.trim();
+    if (!v) return;
+    setBulkRows((cur) => Object.fromEntries(Object.entries(cur).map(([key, row]) => [key, { ...row, league: v }])));
+  };
+  const applyBulkDate = () => {
+    if (!bulkDate) return;
+    setBulkRows((cur) => Object.fromEntries(Object.entries(cur).map(([key, row]) => [key, { ...row, kickoff: bulkDate }])));
+  };
+
+  const bulkInvalid = k.matches.filter((m) => {
+    const row = bulkRows[m.key];
+    return row?.kickoff && veLocalToIso(row.kickoff) === null;
   });
 
-  const handleCreateMatch = async (e: React.FormEvent) => {
+  const saveBulk = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
+    if (bulkInvalid.length > 0) return;
+    setBulkSaving(true);
     try {
-      await onAddMatch({
-        home_team: newMatch.home_team.trim() || 'Equipo Local',
-        away_team: newMatch.away_team.trim() || 'Equipo Visitante',
-        home_logo: newMatch.home_logo.trim() || 'https://api.iconify.design/emojione-v1:soccer-ball.svg',
-        away_logo: newMatch.away_logo.trim() || 'https://api.iconify.design/emojione-v1:soccer-ball.svg',
-        match_date: toIsoString(newMatch.match_date),
-        status: newMatch.status,
-        home_score: Number(newMatch.home_score) || 0,
-        away_score: Number(newMatch.away_score) || 0,
-        minute: newMatch.minute.trim(),
-        sort_order: matches.length + 1,
-      });
-
-      // Limpiar campos para el siguiente partido
-      setNewMatch({
-        home_team: '',
-        away_team: '',
-        home_logo: 'https://api.iconify.design/emojione-v1:soccer-ball.svg',
-        away_logo: 'https://api.iconify.design/emojione-v1:soccer-ball.svg',
-        match_date: toLocalInput(defaultMatchDate.toISOString()),
-        status: 'EN ESPERA',
-        home_score: 0,
-        away_score: 0,
-        minute: '',
-      });
+      const drafts: MatchMetaDraft[] = [];
+      for (const m of k.matches) {
+        const row = bulkRows[m.key] ?? { kickoff: '', league: '' };
+        const rec = records.get(m.key) ?? null;
+        const kickoff = row.kickoff ? veLocalToIso(row.kickoff) : null;
+        const league = row.league.trim() || null;
+        // Solo se tocan los partidos que cambiaron o que ya tenían datos; el resto de campos se conserva
+        const same = (rec?.kickoff ?? null) === kickoff && (rec?.league ?? null) === league;
+        if (same) continue;
+        drafts.push({
+          homeTeamId: m.homeTeam.id,
+          awayTeamId: m.awayTeam.id,
+          kickoff,
+          league,
+          status: rec?.status ?? null,
+          homeScore: rec?.homeScore ?? null,
+          awayScore: rec?.awayScore ?? null,
+          minute: rec?.minute ?? null,
+          finalResult: rec?.finalResult ?? null,
+        });
+      }
+      if (drafts.length === 0) {
+        notify('info', 'Sin cambios', 'No hay nada nuevo que guardar en la hora y la liga.');
+        return;
+      }
+      await saveMatchMeta(k.id, drafts);
+      await afterSave();
+      notify('success', 'Horarios y ligas guardados', `${drafts.length} partido${drafts.length === 1 ? '' : 's'} actualizado${drafts.length === 1 ? '' : 's'}. Pueden tardar hasta 1 minuto en verse en la web.`);
+      setBulkOpen(false);
+    } catch (err) {
+      notify('error', 'No se pudieron guardar los horarios', err instanceof Error ? err.message : 'Inténtalo de nuevo.');
     } finally {
-      setIsSubmitting(false);
+      setBulkSaving(false);
     }
   };
 
-  const handleScoreChange = async (match: Match, team: 'home' | 'away', delta: number) => {
-    if (team === 'home') {
-      const newScore = Math.max(0, match.home_score + delta);
-      await onUpdateMatch(match.id, { home_score: newScore });
-    } else {
-      const newScore = Math.max(0, match.away_score + delta);
-      await onUpdateMatch(match.id, { away_score: newScore });
-    }
-  };
-
-  const handleStatusChange = async (matchId: string, status: MatchStatus) => {
-    const update: Partial<Match> = { status };
-    if (status === 'FINALIZADO') {
-      update.minute = 'FT';
-    } else if (status === 'EN ESPERA') {
-      update.minute = '';
-    } else if (status === 'EN VIVO') {
-      update.minute = "1'";
-    }
-    await onUpdateMatch(matchId, update);
-  };
-
-  const confirmDelete = async () => {
-    if (!matchToDelete) return;
-    setIsDeleting(true);
+  const clearOrphans = async () => {
     try {
-      await onDeleteMatch(matchToDelete);
-      setMatchToDelete(null);
-    } finally {
-      setIsDeleting(false);
+      for (const r of orphans) await deleteMatchMeta(k.id, r.homeTeamId, r.awayTeamId);
+      await afterSave();
+      notify('info', 'Datos sobrantes borrados');
+    } catch (err) {
+      notify('error', 'No se pudo borrar', err instanceof Error ? err.message : 'Inténtalo de nuevo.');
     }
   };
 
-  // Contadores de estado
-  const countLive = matches.filter((m) => m.status === 'EN VIVO').length;
-  const countPending = matches.filter((m) => m.status === 'EN ESPERA').length;
-  const countFinished = matches.filter((m) => m.status === 'FINALIZADO').length;
+  const Chip: React.FC<{ ok: boolean; label: string }> = ({ ok, label }) => (
+    <span
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold border ${
+        ok ? 'bg-emerald-950/60 text-emerald-300 border-emerald-500/40' : 'bg-amber-950/50 text-amber-200 border-amber-500/40'
+      }`}
+    >
+      {ok ? '✓' : '!'} {label}
+    </span>
+  );
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Encabezado y Resumen Estadístico */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#1a2785]">
-        <div>
-          <h2 className="text-2xl font-black font-rockwell text-white flex items-center gap-2.5">
-            Cartelera Oficial de Partidos
-          </h2>
-          <p className="text-slate-300 text-sm mt-1">
-            Inyecta encuentros deportivos, modifica estados (En Vivo / Finalizado) y actualiza marcadores al instante.
-          </p>
-        </div>
+    <div className="space-y-6">
+      <TabHeading />
 
-        {/* Resumen Pills */}
-        <div className="flex items-center flex-wrap gap-2 text-xs font-bold">
-          <span className="px-3 py-1.5 rounded-lg bg-[#0c186b]/80 border border-[#1a2785] text-slate-200">
-            Total: <span className="text-kiniela-gold font-mono">{matches.length}</span>
-          </span>
-          <span className="px-3 py-1.5 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            Fin: <span className="font-mono">{countFinished}</span>
-          </span>
-          <span className="px-3 py-1.5 rounded-lg bg-rose-950/50 border border-rose-500/40 text-rose-300 flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
-            En Vivo: <span className="font-mono">{countLive}</span>
-          </span>
-          <span className="px-3 py-1.5 rounded-lg bg-amber-950/40 border border-amber-500/30 text-amber-300 flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-amber-400" />
-            Espera: <span className="font-mono">{countPending}</span>
-          </span>
-        </div>
-      </div>
+      <KinielaPicker admin={admin} />
 
-      {/* Bloque Colapsable: Agregar Nuevo Encuentro */}
-      <div className="bg-[#060e4f]/80 border border-[#1a2785] rounded-2xl overflow-hidden transition-all shadow-xl">
-        <button
-          type="button"
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-[#0c186b]/40 transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-kiniela-vinotinto/80 border border-kiniela-gold/30 flex items-center justify-center text-kiniela-gold">
-              <Plus className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-white font-rockwell">
-                Agregar Nuevo Encuentro Deportivo
-              </h3>
-              <p className="text-xs text-slate-400">
-                Añadir equipos, logos/banderas, fecha, hora y estado a la kiniela
-              </p>
-            </div>
-          </div>
-          <div className="text-slate-400">
-            {showAddForm ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-          </div>
-        </button>
-
-        {showAddForm && (
-          <form onSubmit={handleCreateMatch} className="p-6 pt-2 border-t border-[#1a2785]/80 space-y-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {/* Equipo Local */}
-              <div className="p-4 rounded-xl bg-[#00063E]/80 border border-[#1a2785] space-y-3">
-                <span className="text-xs font-bold text-kiniela-gold uppercase tracking-wider block">
-                  🏟️ Equipo Local
-                </span>
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Nombre del Equipo</label>
-                  <input
-                    type="text"
-                    placeholder="Ej: Venezuela (Vinotinto) o Real Madrid"
-                    value={newMatch.home_team}
-                    onChange={(e) => setNewMatch({ ...newMatch, home_team: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-[#060e4f] border border-[#1a2785] rounded-lg text-white font-semibold text-sm focus:outline-none focus:border-kiniela-gold"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">URL Logo / Bandera</label>
-                  <input
-                    type="url"
-                    value={newMatch.home_logo}
-                    onChange={(e) => setNewMatch({ ...newMatch, home_logo: e.target.value })}
-                    className="w-full px-3.5 py-2 bg-[#060e4f] border border-[#1a2785] rounded-lg text-slate-300 text-xs font-mono focus:outline-none focus:border-kiniela-gold"
-                  />
-                </div>
-                {/* Presets Rápidos Local */}
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {TEAM_PRESETS.slice(0, 5).map((p) => (
-                    <button
-                      key={p.name}
-                      type="button"
-                      onClick={() => setNewMatch({ ...newMatch, home_team: p.name, home_logo: p.logo })}
-                      className="text-[10px] px-2 py-1 rounded bg-[#0c186b] text-slate-300 hover:text-white hover:bg-[#1a2785] border border-[#1a2785] transition-all"
-                    >
-                      {p.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Equipo Visitante */}
-              <div className="p-4 rounded-xl bg-[#00063E]/80 border border-[#1a2785] space-y-3">
-                <span className="text-xs font-bold text-rose-400 uppercase tracking-wider block">
-                  ✈️ Equipo Visitante
-                </span>
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Nombre del Equipo</label>
-                  <input
-                    type="text"
-                    placeholder="Ej: Brasil o FC Barcelona"
-                    value={newMatch.away_team}
-                    onChange={(e) => setNewMatch({ ...newMatch, away_team: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-[#060e4f] border border-[#1a2785] rounded-lg text-white font-semibold text-sm focus:outline-none focus:border-kiniela-gold"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">URL Logo / Bandera</label>
-                  <input
-                    type="url"
-                    value={newMatch.away_logo}
-                    onChange={(e) => setNewMatch({ ...newMatch, away_logo: e.target.value })}
-                    className="w-full px-3.5 py-2 bg-[#060e4f] border border-[#1a2785] rounded-lg text-slate-300 text-xs font-mono focus:outline-none focus:border-kiniela-gold"
-                  />
-                </div>
-                {/* Presets Rápidos Visitante */}
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {TEAM_PRESETS.slice(0, 5).map((p) => (
-                    <button
-                      key={p.name}
-                      type="button"
-                      onClick={() => setNewMatch({ ...newMatch, away_team: p.name, away_logo: p.logo })}
-                      className="text-[10px] px-2 py-1 rounded bg-[#0c186b] text-slate-300 hover:text-white hover:bg-[#1a2785] border border-[#1a2785] transition-all"
-                    >
-                      {p.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Fecha, Hora y Estado Inicial */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5 flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-kiniela-gold" />
-                  Fecha y Hora del Encuentro
-                </label>
-                <input
-                  type="datetime-local"
-                  value={newMatch.match_date}
-                  onChange={(e) => setNewMatch({ ...newMatch, match_date: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-[#00063E] border border-[#1a2785] rounded-xl text-white text-sm font-mono focus:outline-none focus:border-kiniela-gold"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                  Estado Inicial
-                </label>
-                <select
-                  value={newMatch.status}
-                  onChange={(e) => setNewMatch({ ...newMatch, status: e.target.value as MatchStatus })}
-                  className="w-full px-3.5 py-2.5 bg-[#00063E] border border-[#1a2785] rounded-xl text-white text-sm font-semibold focus:outline-none focus:border-kiniela-gold"
-                >
-                  <option value="EN ESPERA">⏳ EN ESPERA</option>
-                  <option value="EN VIVO">🔴 EN VIVO</option>
-                  <option value="FINALIZADO">✅ FINALIZADO</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-2">
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-wider text-white bg-gradient-to-r from-kiniela-vinotinto to-[#a62b53] hover:from-[#9f2c52] hover:to-kiniela-vinotinto border border-kiniela-vinotinto-hover shadow-lg shadow-kiniela-vinotinto/40 hover:shadow-brand-vinotinto disabled:opacity-50 transition-all flex items-center gap-2"
-              >
-                {isSubmitting ? (
-                  <>
-                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Agregando...
-                  </>
-                ) : (
-                  <>
-                    <Plus className="w-4 h-4 text-kiniela-gold" />
-                    Inyectar Encuentro a la Cartelera
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
-
-      {/* Lista de Partidos Existentes con Controles Rápidos en Tiempo Real */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-base font-bold text-white uppercase tracking-wider flex items-center gap-2">
-            <span>Encuentros Deportivos Programados</span>
-            <span className="text-xs bg-[#0c186b] text-kiniela-gold px-2.5 py-0.5 rounded-full font-mono">
-              {matches.length}
-            </span>
-          </h3>
-        </div>
-
-        {matches.length === 0 ? (
-          <div className="p-8 text-center bg-[#060e4f]/40 border border-[#1a2785] rounded-2xl text-slate-400">
-            <Calendar className="w-10 h-10 mx-auto mb-2 text-slate-500 opacity-50" />
-            <p className="font-medium text-sm">No hay partidos registrados en la cartelera.</p>
-            <p className="text-xs text-slate-500 mt-1">Usa el formulario superior para agregar el primer encuentro.</p>
-          </div>
-        ) : (
-          <div className="space-y-3.5">
-            {matches.map((match, index) => {
-              const isLive = match.status === 'EN VIVO';
-              const isFinished = match.status === 'FINALIZADO';
-              const isPending = match.status === 'EN ESPERA';
-
-              return (
-                <div
-                  key={match.id}
-                  className={`p-4 sm:p-5 rounded-2xl border transition-all ${
-                    isLive
-                      ? 'bg-gradient-to-r from-[#060e4f] to-[#882445]/30 border-rose-500/50 shadow-lg shadow-rose-950/30 ring-1 ring-rose-500/30'
-                      : isFinished
-                      ? 'bg-[#060e4f]/60 border-[#1a2785]/80 opacity-90'
-                      : 'bg-[#060e4f]/80 border-[#1a2785] hover:border-kiniela-gold/40'
-                  }`}
-                >
-                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                    {/* Orden, Estado y Fecha */}
-                    <div className="flex items-center justify-between lg:justify-start gap-3">
-                      <span className="w-7 h-7 rounded-lg bg-[#00063E] border border-[#1a2785] text-slate-400 font-mono font-bold text-xs flex items-center justify-center">
-                        #{index + 1}
-                      </span>
-
-                      {/* Badge de Estado Principal */}
-                      <div>
-                        {isLive && (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-rose-500/20 text-rose-400 border border-rose-500/40">
-                            <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
-                            <Radio className="w-3.5 h-3.5" />
-                            EN VIVO ({match.minute || "1'"})
-                          </span>
-                        )}
-                        {isPending && (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700">
-                            <Hourglass className="w-3.5 h-3.5 text-amber-400" />
-                            EN ESPERA
-                          </span>
-                        )}
-                        {isFinished && (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-950/60 text-emerald-400 border border-emerald-500/40">
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            FINALIZADO
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Fecha / Hora */}
-                      <span className="text-xs text-slate-400 font-mono flex items-center gap-1 hidden sm:flex">
-                        <Clock className="w-3.5 h-3.5 text-slate-500" />
-                        {new Date(match.match_date).toLocaleString('es-VE', {
-                          day: '2-digit',
-                          month: 'short',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </span>
-                    </div>
-
-                    {/* Equipos y Marcador Rápido */}
-                    <div className="flex items-center justify-center gap-3 sm:gap-6 my-1">
-                      {/* Local */}
-                      <div className="flex items-center gap-2 sm:gap-3 flex-1 justify-end text-right min-w-[120px]">
-                        <span className="font-bold text-sm sm:text-base text-white truncate max-w-[140px] sm:max-w-[180px]">
-                          {match.home_team}
-                        </span>
-                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-800 p-1 shrink-0 flex items-center justify-center border border-slate-700">
-                          <Image
-                            src={match.home_logo || 'https://api.iconify.design/emojione-v1:soccer-ball.svg'}
-                            alt={match.home_team}
-                            width={24}
-                            height={24}
-                            className="w-full h-full object-contain"
-                            unoptimized
-                          />
-                        </div>
-                      </div>
-
-                      {/* Controles de Marcador (+ y -) */}
-                      <div className="flex items-center gap-1.5 bg-[#00063E] px-3 py-1.5 rounded-xl border border-[#1a2785] shrink-0">
-                        {/* Control Goles Local */}
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => handleScoreChange(match, 'home', -1)}
-                            className="w-6 h-6 rounded bg-[#0c186b] hover:bg-[#1a2785] text-slate-300 hover:text-white flex items-center justify-center text-xs transition-colors"
-                            title="Restar gol local"
-                          >
-                            <Minus className="w-3 h-3" />
-                          </button>
-                          <span className="font-rockwell font-black text-lg sm:text-xl text-kiniela-gold w-6 text-center">
-                            {match.home_score}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleScoreChange(match, 'home', 1)}
-                            className="w-6 h-6 rounded bg-[#0c186b] hover:bg-[#1a2785] text-slate-300 hover:text-white flex items-center justify-center text-xs transition-colors"
-                            title="Sumar gol local"
-                          >
-                            <Plus className="w-3 h-3" />
-                          </button>
-                        </div>
-
-                        <span className="text-slate-500 font-bold px-1">:</span>
-
-                        {/* Control Goles Visitante */}
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => handleScoreChange(match, 'away', -1)}
-                            className="w-6 h-6 rounded bg-[#0c186b] hover:bg-[#1a2785] text-slate-300 hover:text-white flex items-center justify-center text-xs transition-colors"
-                            title="Restar gol visitante"
-                          >
-                            <Minus className="w-3 h-3" />
-                          </button>
-                          <span className="font-rockwell font-black text-lg sm:text-xl text-kiniela-gold w-6 text-center">
-                            {match.away_score}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleScoreChange(match, 'away', 1)}
-                            className="w-6 h-6 rounded bg-[#0c186b] hover:bg-[#1a2785] text-slate-300 hover:text-white flex items-center justify-center text-xs transition-colors"
-                            title="Sumar gol visitante"
-                          >
-                            <Plus className="w-3 h-3" />
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Visitante */}
-                      <div className="flex items-center gap-2 sm:gap-3 flex-1 justify-start text-left min-w-[120px]">
-                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-800 p-1 shrink-0 flex items-center justify-center border border-slate-700">
-                          <Image
-                            src={match.away_logo || 'https://api.iconify.design/emojione-v1:soccer-ball.svg'}
-                            alt={match.away_team}
-                            width={24}
-                            height={24}
-                            className="w-full h-full object-contain"
-                            unoptimized
-                          />
-                        </div>
-                        <span className="font-bold text-sm sm:text-base text-white truncate max-w-[140px] sm:max-w-[180px]">
-                          {match.away_team}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Botones de 1 Clic para Estados y Minuto */}
-                    <div className="flex items-center flex-wrap gap-2 justify-end pt-2 lg:pt-0 border-t lg:border-t-0 border-[#1a2785]/60">
-                      {/* Botones de Estado */}
-                      <div className="flex items-center rounded-lg bg-[#00063E] p-0.5 border border-[#1a2785]">
-                        <button
-                          type="button"
-                          onClick={() => handleStatusChange(match.id, 'EN ESPERA')}
-                          className={`px-2.5 py-1.5 rounded-md text-[11px] font-bold transition-all ${
-                            isPending
-                              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
-                              : 'text-slate-400 hover:text-white hover:bg-white/5'
-                          }`}
-                          title="Marcar como En Espera"
-                        >
-                          ⏳ Espera
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleStatusChange(match.id, 'EN VIVO')}
-                          className={`px-2.5 py-1.5 rounded-md text-[11px] font-bold transition-all ${
-                            isLive
-                              ? 'bg-rose-600 text-white shadow-md shadow-rose-950/60'
-                              : 'text-slate-400 hover:text-rose-400 hover:bg-rose-500/10'
-                          }`}
-                          title="Marcar como En Vivo"
-                        >
-                          🔴 En Vivo
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleStatusChange(match.id, 'FINALIZADO')}
-                          className={`px-2.5 py-1.5 rounded-md text-[11px] font-bold transition-all ${
-                            isFinished
-                              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-950/60'
-                              : 'text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10'
-                          }`}
-                          title="Marcar como Finalizado"
-                        >
-                          ✅ Fin
-                        </button>
-                      </div>
-
-                      {/* Campo Minuto de Juego */}
-                      <div className="flex items-center gap-1">
-                        <input
-                          type="text"
-                          value={match.minute || ''}
-                          onChange={(e) => onUpdateMatch(match.id, { minute: e.target.value })}
-                          placeholder="Min (68')"
-                          className="w-16 px-2 py-1.5 bg-[#00063E] border border-[#1a2785] rounded-lg text-xs font-mono font-bold text-center text-white focus:outline-none focus:border-kiniela-gold"
-                        />
-                        {/* Selector rápido de minutos populares */}
-                        <div className="hidden sm:flex items-center gap-1">
-                          {MINUTE_PRESETS.slice(3, 7).map((mPreset) => (
-                            <button
-                              key={mPreset}
-                              type="button"
-                              onClick={() => onUpdateMatch(match.id, { minute: mPreset })}
-                              className="text-[10px] px-1.5 py-1 rounded bg-[#0c186b]/60 text-slate-400 hover:text-white hover:bg-[#1a2785]"
-                            >
-                              {mPreset}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Botón Editar Encuentro */}
-                      <button
-                        type="button"
-                        onClick={() => setMatchToEdit(match)}
-                        className="p-1.5 rounded-lg text-slate-300 hover:text-kiniela-gold hover:bg-kiniela-gold/10 border border-white/10 hover:border-kiniela-gold/40 transition-all flex items-center gap-1 text-xs font-bold"
-                        title="Editar partido completo"
-                      >
-                        <Edit3 className="w-4 h-4" />
-                        <span className="hidden sm:inline">Editar</span>
-                      </button>
-
-                      {/* Botón Eliminar Encuentro */}
-                      <button
-                        type="button"
-                        onClick={() => setMatchToDelete(match.id)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 border border-transparent hover:border-rose-500/30 transition-all"
-                        title="Eliminar partido de la cartelera"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Modal de Confirmación para Eliminar Partido */}
-      {matchToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#060e4f] border border-rose-500/40 rounded-2xl max-w-md w-full p-6 shadow-2xl relative text-center">
-            <div className="w-12 h-12 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto mb-4 border border-rose-500/30">
-              <AlertTriangle className="w-6 h-6" />
-            </div>
-
-            <h3 className="text-lg font-bold text-white font-rockwell">
-              ¿Eliminar Encuentro Deportivo?
-            </h3>
-            <p className="text-slate-300 text-sm mt-2 leading-relaxed">
-              El partido será removido inmediatamente de la cartelera oficial y de la vista del pronosticador.
-            </p>
-
-            <div className="flex items-center justify-center gap-3 mt-6">
-              <button
-                type="button"
-                onClick={() => setMatchToDelete(null)}
-                disabled={isDeleting}
-                className="px-4 py-2 text-xs font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={confirmDelete}
-                disabled={isDeleting}
-                className="px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-500 rounded-lg shadow-lg shadow-rose-950/50 transition-all flex items-center gap-2"
-              >
-                {isDeleting ? (
-                  <>
-                    <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Eliminando...
-                  </>
-                ) : (
-                  'Sí, Eliminar'
-                )}
-              </button>
-            </div>
-          </div>
+      {manual.error && (
+        <div role="alert" className="flex gap-3 p-4 rounded-xl bg-rose-950/60 border border-rose-500/50 text-rose-100 text-sm">
+          <TriangleAlert className="w-5 h-5 text-rose-300 shrink-0" aria-hidden="true" />
+          <p>{manual.error}</p>
         </div>
       )}
 
-      {/* Modal para Editar Encuentro Deportivo */}
-      <EditMatchModal
-        isOpen={Boolean(matchToEdit)}
-        match={matchToEdit}
-        onClose={() => setMatchToEdit(null)}
-        onSave={async (id, update) => {
-          await onUpdateMatch(id, update);
-        }}
+      {/* Resumen */}
+      <div className="flex flex-wrap items-center gap-2" role="status" aria-label="Resumen de datos cargados">
+        <span className="px-3 py-1.5 rounded-lg bg-[#0c186b]/80 border border-[#1a2785] text-sm text-slate-100">
+          Con hora: <strong className="text-kiniela-gold">{withTime}/{total}</strong>
+        </span>
+        <span className="px-3 py-1.5 rounded-lg bg-[#0c186b]/80 border border-[#1a2785] text-sm text-slate-100">
+          Con liga: <strong className="text-kiniela-gold">{withLeague}/{total}</strong>
+        </span>
+        <span className="px-3 py-1.5 rounded-lg bg-[#0c186b]/80 border border-[#1a2785] text-sm text-slate-100">
+          Con resultado: <strong className="text-kiniela-gold">{withResult}/{total}</strong>
+        </span>
+        {live > 0 && (
+          <span className="px-3 py-1.5 rounded-lg bg-rose-950/60 border border-rose-500/50 text-sm text-rose-100">
+            En vivo: <strong>{live}</strong>
+          </span>
+        )}
+      </div>
+
+      <p className="flex items-start gap-2 text-sm text-slate-200 bg-[#00063E]/60 border border-[#1a2785] rounded-xl p-3">
+        <Info className="w-4 h-4 text-kiniela-gold mt-0.5 shrink-0" aria-hidden="true" />
+        <span>Los cambios tardan hasta ~1 minuto en verse en la web. Todas las horas son de Venezuela.</span>
+      </p>
+
+      {total === 0 ? (
+        <div className={`${CARD} text-center text-slate-200`}>
+          <CalendarDays className="w-10 h-10 mx-auto mb-2 text-slate-400" aria-hidden="true" />
+          <p className="font-bold">Esta Kiniela no trae partidos desde el servidor oficial.</p>
+          <p className={HELP}>Cuando el servidor los publique, aparecerán aquí para cargar hora, liga y resultados.</p>
+        </div>
+      ) : (
+        <>
+          {/* Carga masiva */}
+          <section className={`${CARD} space-y-4`} aria-labelledby="bulk-title">
+            <button
+              type="button"
+              onClick={() => setBulkOpen((v) => !v)}
+              aria-expanded={bulkOpen}
+              className="w-full min-h-[44px] flex items-center justify-between gap-3 text-left"
+            >
+              <span className="flex items-center gap-3">
+                <span className="w-9 h-9 rounded-lg bg-kiniela-vinotinto/80 border border-kiniela-gold/30 flex items-center justify-center text-kiniela-gold shrink-0">
+                  <CalendarClock className="w-5 h-5" aria-hidden="true" />
+                </span>
+                <span>
+                  <span id="bulk-title" className="block text-base font-bold text-white font-rockwell">
+                    Cargar hora y liga de todos los partidos
+                  </span>
+                  <span className="block text-xs text-slate-300">Más rápido que ir uno por uno</span>
+                </span>
+              </span>
+              {bulkOpen ? <ChevronUp className="w-5 h-5 text-slate-300" aria-hidden="true" /> : <ChevronDown className="w-5 h-5 text-slate-300" aria-hidden="true" />}
+            </button>
+
+            {bulkOpen && (
+              <form onSubmit={saveBulk} className="space-y-4 border-t border-[#1a2785] pt-4" noValidate>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-3 rounded-xl bg-[#00063E]/60 border border-[#1a2785]">
+                  <div>
+                    <label htmlFor="bulk-league-all" className={LABEL}>Misma liga para todos</label>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input id="bulk-league-all" type="text" value={bulkLeague} onChange={(e) => setBulkLeague(e.target.value)} placeholder="Ej: Champions League" className={INPUT} />
+                      <button type="button" onClick={applyBulkLeague} disabled={!bulkLeague.trim()} className={BTN_GHOST}>Aplicar</button>
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="bulk-date-all" className={LABEL}>Misma fecha y hora para todos</label>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input id="bulk-date-all" type="datetime-local" value={bulkDate} onChange={(e) => setBulkDate(e.target.value)} className={INPUT} />
+                      <button type="button" onClick={applyBulkDate} disabled={!bulkDate} className={BTN_GHOST}>Aplicar</button>
+                    </div>
+                  </div>
+                </div>
+
+                <ol className="space-y-3">
+                  {k.matches.map((m) => {
+                    const row = bulkRows[m.key] ?? { kickoff: '', league: '' };
+                    const bad = row.kickoff && veLocalToIso(row.kickoff) === null;
+                    return (
+                      <li key={m.key} className="p-3 rounded-xl bg-[#00063E]/60 border border-[#1a2785]">
+                        <p className="flex items-center gap-2 text-sm font-bold text-white mb-2">
+                          <span className="font-mono text-xs text-slate-300 w-5">{m.index}.</span>
+                          <TeamLogo url={m.homeTeam.logoUrl} />
+                          <span className="truncate">{m.homeTeam.name}</span>
+                          <span className="text-slate-300 font-normal">vs</span>
+                          <TeamLogo url={m.awayTeam.logoUrl} />
+                          <span className="truncate">{m.awayTeam.name}</span>
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label htmlFor={`bk-${m.key}`} className="sr-only">Fecha y hora de {m.homeTeam.name} vs {m.awayTeam.name}</label>
+                            <input
+                              id={`bk-${m.key}`}
+                              type="datetime-local"
+                              value={row.kickoff}
+                              onChange={(e) => setBulkRows((c) => ({ ...c, [m.key]: { ...row, kickoff: e.target.value } }))}
+                              aria-invalid={Boolean(bad)}
+                              className={INPUT}
+                            />
+                          </div>
+                          <div>
+                            <label htmlFor={`bl-${m.key}`} className="sr-only">Liga de {m.homeTeam.name} vs {m.awayTeam.name}</label>
+                            <input
+                              id={`bl-${m.key}`}
+                              type="text"
+                              value={row.league}
+                              onChange={(e) => setBulkRows((c) => ({ ...c, [m.key]: { ...row, league: e.target.value } }))}
+                              maxLength={60}
+                              placeholder="Liga o torneo"
+                              className={INPUT}
+                            />
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+
+                {bulkInvalid.length > 0 && (
+                  <p role="alert" className="text-sm text-rose-300">Hay una fecha que no se entiende. Elígela con el calendario.</p>
+                )}
+                <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+                  <button type="button" onClick={() => setBulkOpen(false)} className={BTN_GHOST}>Cerrar</button>
+                  <button type="submit" disabled={bulkSaving || bulkInvalid.length > 0} className={BTN_PRIMARY}>
+                    {bulkSaving ? (
+                      <>
+                        <span className={SPINNER} aria-hidden="true" />
+                        Guardando...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4 text-kiniela-gold" aria-hidden="true" />
+                        Guardar horas y ligas
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            )}
+          </section>
+
+          {/* Lista de partidos */}
+          <ol className="space-y-3" aria-label="Partidos de la Kiniela">
+            {k.matches.map((m) => {
+              const rec = records.get(m.key) ?? null;
+              const isOpen = openKey === m.key;
+              const hasScore = rec && rec.homeScore !== null && rec.awayScore !== null;
+              return (
+                <li key={m.key} className={`rounded-2xl border p-3 sm:p-4 transition-colors ${rec?.status === 'EN VIVO' ? 'border-rose-500/60 bg-rose-950/20' : 'border-[#1a2785] bg-[#060e4f]/70'}`}>
+                  <div className="flex items-start gap-3">
+                    <span className="w-8 h-8 shrink-0 rounded-lg bg-[#00063E] border border-[#1a2785] text-slate-200 font-mono font-bold text-sm flex items-center justify-center">
+                      {m.index}
+                    </span>
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm sm:text-base font-bold text-white">
+                        <span className="inline-flex items-center gap-1.5 min-w-0">
+                          <TeamLogo url={m.homeTeam.logoUrl} />
+                          <span className="truncate">{m.homeTeam.name}</span>
+                        </span>
+                        {hasScore ? (
+                          <span className="font-rockwell font-black text-kiniela-gold text-lg px-1">{rec!.homeScore} - {rec!.awayScore}</span>
+                        ) : (
+                          <span className="text-slate-300 font-normal">vs</span>
+                        )}
+                        <span className="inline-flex items-center gap-1.5 min-w-0">
+                          <TeamLogo url={m.awayTeam.logoUrl} />
+                          <span className="truncate">{m.awayTeam.name}</span>
+                        </span>
+                      </p>
+
+                      <div className="flex flex-wrap items-center gap-2 text-sm text-slate-200">
+                        <span className="inline-flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5 text-slate-300" aria-hidden="true" />
+                          {rec?.kickoff ? formatDateTimeVE(rec.kickoff) : <span className="text-amber-200">Falta la hora</span>}
+                        </span>
+                        <span aria-hidden="true">·</span>
+                        <span>{rec?.league ? rec.league : <span className="text-amber-200">Falta la liga</span>}</span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        {rec?.status ? (
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${STATUS_PILL[rec.status]}`}>
+                            {STATUS_LABEL[rec.status]}{rec.status === 'EN VIVO' && rec.minute ? ` · ${rec.minute}` : ''}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-300">Sin estado</span>
+                        )}
+                        {rec?.finalResult && (
+                          <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-bold bg-kiniela-gold/20 text-kiniela-gold border border-kiniela-gold/50">
+                            Resultado: {rec.finalResult}
+                          </span>
+                        )}
+                        <Chip ok={Boolean(rec?.kickoff)} label="Hora" />
+                        <Chip ok={Boolean(rec?.league)} label="Liga" />
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setOpenKey(isOpen ? null : m.key)}
+                      aria-expanded={isOpen}
+                      className={`${BTN_GHOST} shrink-0 ${isOpen ? 'border-kiniela-gold/60 text-kiniela-gold' : ''}`}
+                    >
+                      <Pencil className="w-4 h-4" aria-hidden="true" />
+                      <span>{isOpen ? 'Cerrar' : 'Editar'}</span>
+                    </button>
+                  </div>
+
+                  {isOpen && (
+                    <MatchEditor
+                      key={`${m.key}-${rec?.updatedAt ?? 'nuevo'}`}
+                      match={m}
+                      record={rec}
+                      leagueOptions={leagueOptions}
+                      saving={savingKey === m.key}
+                      onSave={(draft) => saveOne(m, draft)}
+                      onClear={async () => setConfirmClear(m)}
+                      onCancel={() => setOpenKey(null)}
+                    />
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+
+          {orphans.length > 0 && (
+            <div className="p-4 rounded-xl bg-amber-950/40 border border-amber-500/40 text-amber-100 text-sm flex flex-col sm:flex-row sm:items-center gap-3">
+              <p className="flex-1">
+                Hay {orphans.length} dato{orphans.length === 1 ? '' : 's'} guardado{orphans.length === 1 ? '' : 's'} que ya no corresponde{orphans.length === 1 ? '' : 'n'} a ningún partido de esta Kiniela (por ejemplo, si el servidor cambió un equipo).
+              </p>
+              <button type="button" onClick={clearOrphans} className={BTN_GHOST}>Borrar esos datos</button>
+            </div>
+          )}
+        </>
+      )}
+
+      <ConfirmDialog
+        open={confirmClear !== null}
+        title="¿Borrar los datos de este partido?"
+        message="Se quitarán la hora, la liga, el estado, el marcador y el resultado cargados a mano. El partido seguirá en la Kiniela, pero sin esos datos."
+        confirmLabel="Sí, borrar"
+        busy={clearing}
+        onConfirm={clearOne}
+        onCancel={() => setConfirmClear(null)}
       />
     </div>
   );
 };
+
+const TabHeading: React.FC = () => (
+  <div className="pb-4 border-b border-[#1a2785]">
+    <h2 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight flex items-center gap-2 font-rockwell">
+      <CalendarDays className="w-6 h-6 text-kiniela-gold" aria-hidden="true" />
+      <span>Partidos de la Kiniela</span>
+    </h2>
+    <p className="text-sm text-slate-200 mt-1 max-w-3xl">
+      Los equipos llegan solos desde el servidor oficial. Aquí cargas lo que el servidor no trae: la fecha y hora, la liga, el
+      estado, el marcador, el minuto y el resultado final de cada partido.
+    </p>
+  </div>
+);

@@ -52,9 +52,11 @@ export interface Banner {
 
 export interface BannerSlide {
   id: string;
+  /** Descripción corta de la imagen: no se muestra, solo la leen los lectores de pantalla. */
   title: string;
-  image_url: string; // Panorámica para escritorio (21:9 o 16:6)
-  image_url_mobile?: string; // Vertical/cuadrada para móvil (4:5 o 1:1)
+  image_url: string; // Escritorio y tablet: 1920 × 720 px (8:3)
+  image_url_mobile?: string | null; // Celular: 1080 × 1350 px (4:5)
+  /** Campos antiguos: la web ya no los muestra. Se conservan para no romper lo guardado. */
   button_text?: string;
   target_section?: string;
   is_active: boolean;

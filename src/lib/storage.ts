@@ -3,108 +3,103 @@ import { getSupabase, isSupabaseConfigured } from './kiniela-store';
 export interface UploadResult {
   url: string | null;
   error: string | null;
+  /** Se conserva por compatibilidad: ya no se hacen cargas "provisionales" en Base64. */
   isFallback?: boolean;
 }
 
+/** Tipos de imagen permitidos en el panel (sin GIF ni SVG: ver docs/GUIA-BANNERS.md). */
+export const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+export const ALLOWED_IMAGE_LABEL = 'JPG, PNG o WebP';
+
+/** Peso máximo permitido al subir. El recomendado (300 KB / 250 KB) solo genera una advertencia. */
+export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+
+/** Valida tipo y peso máximo. Devuelve un mensaje claro o null si el archivo es aceptable. */
+export function validateImageFile(file: File): string | null {
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    return `Este archivo no es una imagen permitida. Usa ${ALLOWED_IMAGE_LABEL} (no se aceptan GIF ni SVG).`;
+  }
+  if (file.size > MAX_UPLOAD_BYTES) {
+    const mb = (file.size / (1024 * 1024)).toFixed(1).replace('.', ',');
+    return `La imagen pesa ${mb} MB y el máximo es 5 MB. Comprímela antes de subirla (lo ideal es menos de 300 KB).`;
+  }
+  return null;
+}
+
+/** Traduce los errores técnicos de Supabase Storage a un mensaje para una persona no técnica. */
+function explainStorageError(message: string | undefined): string {
+  const m = (message || '').toLowerCase();
+  if (m.includes('bucket not found')) {
+    return 'El almacén de imágenes todavía no está creado en la base de datos. Avisa al equipo técnico (hay una ayuda en la pestaña Banners).';
+  }
+  if (m.includes('row-level security') || m.includes('policy') || m.includes('unauthorized') || m.includes('not authorized')) {
+    return 'La base de datos no permite subir imágenes todavía. Avisa al equipo técnico (hay una ayuda en la pestaña Banners).';
+  }
+  if (m.includes('failed to fetch') || m.includes('network') || m.includes('timeout')) {
+    return 'No hay conexión con el almacén de imágenes. Revisa tu internet e inténtalo de nuevo.';
+  }
+  if (m.includes('exceeded') || m.includes('too large') || m.includes('payload')) {
+    return 'La imagen es demasiado pesada para el almacén. Comprímela e inténtalo de nuevo.';
+  }
+  return 'No se pudo subir la imagen' + (message ? ` (${message})` : '') + '.';
+}
+
 /**
- * Sube un archivo de imagen al bucket de Supabase Storage.
- * Si el bucket aún no existe o hay problemas de RLS, provee un fallback
- * en formato Base64 para que el usuario no quede bloqueado en su sesión.
+ * Sube un archivo de imagen al bucket de Supabase Storage y devuelve su URL pública.
+ * Si la subida falla NO se guarda nada: antes se metía la imagen entera (Base64) en la base
+ * de datos y eso volvía lentas la landing y el panel.
  */
 export async function uploadMediaFile(
   file: File,
   bucketName: string = 'banners'
 ): Promise<UploadResult> {
-  // Validación básica de tipo de archivo
-  if (!file.type.startsWith('image/')) {
-    return {
-      url: null,
-      error: 'El archivo seleccionado no es una imagen válida (debe ser PNG, JPG, JPEG, WEBP o SVG).',
-    };
-  }
-
-  // Límite de tamaño: 10 MB
-  const maxBytes = 10 * 1024 * 1024;
-  if (file.size > maxBytes) {
-    return {
-      url: null,
-      error: 'La imagen excede el tamaño máximo permitido de 10 MB. Por favor optimiza el archivo.',
-    };
-  }
+  const invalid = validateImageFile(file);
+  if (invalid) return { url: null, error: invalid };
 
   const supabase = getSupabase();
-
-  // Si Supabase está disponible, intentamos subir al storage en la nube
-  if (supabase && isSupabaseConfigured()) {
-    try {
-      // Sanitizar el nombre del archivo eliminando caracteres especiales
-      const cleanFileName = file.name
-        .toLowerCase()
-        .replace(/[^a-z0-9.]/g, '-')
-        .replace(/-+/g, '-');
-      
-      const uniquePath = `${Date.now()}_${cleanFileName}`;
-
-      const { data, error } = await supabase.storage
-        .from(bucketName)
-        .upload(uniquePath, file, {
-          cacheControl: '3600',
-          upsert: true,
-          contentType: file.type,
-        });
-
-      if (!error && data) {
-        // Obtener la URL pública oficial servida por Supabase CDN
-        const { data: urlData } = supabase.storage
-          .from(bucketName)
-          .getPublicUrl(uniquePath);
-
-        if (urlData?.publicUrl) {
-          return {
-            url: urlData.publicUrl,
-            error: null,
-            isFallback: false,
-          };
-        }
-      }
-
-      console.warn('[Storage] Error al subir a Supabase Storage:', error);
-      // Si el bucket no está creado o falta política RLS, notificamos y aplicamos fallback Base64
-      const fallbackUrl = await fileToBase64(file);
-      return {
-        url: fallbackUrl,
-        error: `Supabase Storage: ${error?.message || 'Bucket no configurado aún'}. Se aplicó carga local provisional. Recuerda ejecutar el script SQL en Supabase para habilitar el bucket público.`,
-        isFallback: true,
-      };
-    } catch (err: any) {
-      console.error('[Storage] Excepción durante la subida:', err);
-      const fallbackUrl = await fileToBase64(file);
-      return {
-        url: fallbackUrl,
-        error: err?.message || 'Error de conexión con Supabase Storage. Se aplicó carga provisional.',
-        isFallback: true,
-      };
-    }
-  }
-
-  // Fallback cuando Supabase no está conectado
-  try {
-    const fallbackUrl = await fileToBase64(file);
-    return {
-      url: fallbackUrl,
-      error: null,
-      isFallback: true,
-    };
-  } catch {
+  if (!supabase || !isSupabaseConfigured()) {
     return {
       url: null,
-      error: 'No se pudo procesar la imagen seleccionada.',
+      error: 'No hay conexión con la base de datos, así que no se puede subir la imagen. Puedes pegar la dirección (URL) de una imagen ya publicada.',
     };
+  }
+
+  try {
+    // Nombre sin caracteres raros ni acentos
+    const cleanFileName = file.name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9.]/g, '-')
+      .replace(/-+/g, '-');
+
+    const uniquePath = `${Date.now()}_${cleanFileName}`;
+
+    const { data, error } = await supabase.storage.from(bucketName).upload(uniquePath, file, {
+      cacheControl: '3600',
+      upsert: false,
+      contentType: file.type,
+    });
+
+    if (error || !data) {
+      console.warn('[Storage] Error al subir a Supabase Storage:', error);
+      return { url: null, error: explainStorageError(error?.message) };
+    }
+
+    const { data: urlData } = supabase.storage.from(bucketName).getPublicUrl(uniquePath);
+    if (!urlData?.publicUrl) {
+      return { url: null, error: 'La imagen se subió, pero no se pudo obtener su dirección. Inténtalo de nuevo.' };
+    }
+    return { url: urlData.publicUrl, error: null, isFallback: false };
+  } catch (err) {
+    console.error('[Storage] Excepción durante la subida:', err);
+    const message = err instanceof Error ? err.message : undefined;
+    return { url: null, error: explainStorageError(message) };
   }
 }
 
 /**
- * Convierte un archivo local a Data URL Base64 para vista previa o contingencia.
+ * Convierte un archivo local a Data URL Base64 (solo para vistas previas locales).
  */
 export function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
