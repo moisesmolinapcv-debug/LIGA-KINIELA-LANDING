@@ -4,6 +4,7 @@
 // (Local / E / Visitante), contador, talón y tarjeta para compartir.
 // Es un EJERCICIO: nada se envía ni se registra. Datos solo del contexto de Kinielas.
 
+import dynamic from 'next/dynamic';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowRight, RefreshCw, RotateCcw, Scissors, Share2 } from 'lucide-react';
 import type { Kiniela } from '../types/kinielas';
@@ -11,7 +12,8 @@ import { BOLETO, ESTADOS_KINIELA } from '../content/copys';
 import { useKinielasContext } from './taquilla/KinielasProvider';
 import { KiniMascot } from './taquilla/KiniMascot';
 import { MatchLine } from './taquilla/MatchLine';
-import { ShareDialog } from './taquilla/ShareDialog';
+// Solo se descarga al compartir: no pesa en la carga inicial.
+const ShareDialog = dynamic(() => import('./taquilla/ShareDialog').then((m) => m.ShareDialog), { ssr: false });
 import { buzz, scorePractice, usePractice } from './taquilla/practice';
 import type { Pick } from './taquilla/practice';
 

@@ -46,7 +46,8 @@ const config: Config = {
         flip: "420ms",
         reveal: "700ms",
       },
-      minHeight: { tap: "44px", casilla: "48px" },
+      // screen: 100vh incluye la barra del navegador en iOS/Android; dvh (con respaldo vh) sigue la altura visible real.
+      minHeight: { tap: "44px", casilla: "48px", screen: ["100vh", "100dvh"] as unknown as string },
       minWidth: { tap: "44px", casilla: "48px" },
       backgroundImage: {
         "stadium-night": "radial-gradient(120% 80% at 50% 0%, #0c186b 0%, #00063E 45%, #000428 100%)",

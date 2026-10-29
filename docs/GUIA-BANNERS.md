@@ -44,7 +44,8 @@ En un celular, la imagen de 1080 px se reduce a unos 350 px (un tercio). Por eso
 ## Formato y peso
 
 - **WebP** o **JPG** (calidad 80 a 85) para fotos y diseños con degradados. **PNG** solo si hay mucho texto plano y pocos colores.
-- Peso: hasta **300 KB** el de escritorio y **250 KB** el de móvil. Más que eso carga lento con datos móviles.
+- Peso: lo ideal es hasta **300 KB** el de escritorio y **250 KB** el de móvil. Más que eso carga lento con datos móviles.
+- **Límite que bloquea el admin: 600 KB.** Una imagen más pesada no se sube; hay que comprimirla antes (por ejemplo en squoosh.app).
 - Modo de color **sRGB**.
 - No uses GIF ni imágenes animadas.
 

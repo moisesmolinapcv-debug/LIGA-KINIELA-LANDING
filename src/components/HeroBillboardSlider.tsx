@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { getImageProps } from 'next/image';
+import { canOptimize } from '../lib/optimizable';
 import { BannerSlide } from '../types/kiniela';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -11,6 +13,49 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
  *  - Tablet y escritorio:     8:3   → 1920 × 720 px
  * Ver docs/GUIA-BANNERS.md (medidas, zonas seguras y plantillas).
  */
+
+/**
+ * Una pieza del carrusel. Las imágenes del admin se sirven redimensionadas y en WebP desde el optimizador
+ * de Next (un banner de 2,9 MB baja a ~100 KB). Si el optimizador falla o el host no está autorizado,
+ * se usa el archivo original: el banner nunca queda en blanco.
+ */
+function BannerPicture({ slide, priority }: { slide: BannerSlide; priority: boolean }) {
+  const [raw, setRaw] = useState(false);
+  const mobileSrc = slide.image_url_mobile || slide.image_url;
+  const desktopSrc = slide.image_url;
+  const optimize = !raw && canOptimize(mobileSrc) && canOptimize(desktopSrc);
+
+  let mobile: { src: string; srcSet?: string } = { src: mobileSrc };
+  let desktop: { srcSet?: string } = { srcSet: desktopSrc };
+  if (optimize) {
+    const common = { alt: slide.title, quality: 70, priority } as const;
+    const m = getImageProps({ ...common, src: mobileSrc, width: 1080, height: 1350, sizes: '100vw' });
+    const d = getImageProps({ ...common, src: desktopSrc, width: 1920, height: 720, sizes: '(min-width: 1280px) 1280px, 100vw' });
+    mobile = { src: m.props.src, srcSet: m.props.srcSet };
+    desktop = { srcSet: d.props.srcSet };
+  }
+
+  return (
+    <picture className="block w-full h-full">
+      <source media="(min-width: 768px)" srcSet={desktop.srcSet} />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={mobile.src}
+        srcSet={mobile.srcSet}
+        sizes={optimize ? '100vw' : undefined}
+        alt={slide.title}
+        width={1080}
+        height={1350}
+        className="w-full h-full object-cover select-none"
+        draggable={false}
+        loading={priority ? 'eager' : 'lazy'}
+        fetchPriority={priority ? 'high' : 'auto'}
+        decoding="async"
+        onError={() => setRaw(true)}
+      />
+    </picture>
+  );
+}
 
 interface HeroBillboardSliderProps {
   slides?: BannerSlide[];
@@ -97,17 +142,7 @@ export const HeroBillboardSlider: React.FC<HeroBillboardSliderProps> = ({ slides
                   isActive ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
                 }`}
               >
-                <picture className="block w-full h-full">
-                  <source media="(min-width: 768px)" srcSet={slide.image_url} />
-                  <img
-                    src={slide.image_url_mobile || slide.image_url}
-                    alt={slide.title}
-                    className="w-full h-full object-cover select-none"
-                    draggable={false}
-                    loading={idx === 0 ? 'eager' : 'lazy'}
-                    decoding="async"
-                  />
-                </picture>
+                <BannerPicture slide={slide} priority={idx === 0} />
               </div>
             );
           })}

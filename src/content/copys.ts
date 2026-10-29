@@ -6,77 +6,41 @@
 
 export const HORA_VENEZUELA = 'hora de Venezuela';
 
-/** Boleto de práctica (P1): debe quedar clarísimo que es un EJERCICIO DE EJEMPLO. */
+/** Boleto de práctica (P1): rótulo de la imagen compartible. El rótulo visible vive en BOLETO.rotulo. */
 export const PRACTICA = {
-  titulo: 'Prueba tu boleto',
-  rotuloFijo: 'EJERCICIO DE EJEMPLO',
-  aviso:
-    'Boleto de práctica: no es una jugada registrada. Para jugar, ve a una plataforma aliada.',
-  avisoLargo:
-    'Esto es un ejercicio de ejemplo. Tus pronósticos se guardan solo en este dispositivo y no participan en ninguna Kiniela. Para jugar de verdad, entra a una plataforma aliada y busca la taquilla de Liga Kiniela.',
-  instruccion: 'Marca Local, E o Visitante en los 10 partidos.',
-  contador: (marcados: number) => `${marcados}/10 marcados`,
-  completo: 'Boleto de práctica completo. Recuerda: es solo un ejercicio.',
-  incompleto: 'Te faltan partidos por marcar. En la taquilla real hacen falta los 10.',
-  guardado: 'Guardado solo en tu dispositivo.',
-  reiniciar: 'Empezar de nuevo',
-  compartir: 'Compartir mi ejercicio',
   /** Rótulo para la imagen compartible. */
   rotuloTarjeta: 'EJERCICIO DE EJEMPLO · No es una jugada registrada',
-  etiquetaInstagram: '@LigaKiniela',
-  opciones: { local: 'Local', empate: 'E', visitante: 'Visitante' },
 } as const;
 
 /** Llamadas a la acción. Los botones abren el sitio oficial del aliado (D5). */
 export const CTA = {
-  principal: 'Elige tu plataforma y juega',
-  jugarEn: (aliado: string) => `Jugar en ${aliado}`,
-  verAliados: 'Ver plataformas aliadas',
-  comoJugar: 'Cómo jugar en 7 pasos',
-  verReglas: 'Ver reglas',
   verTerminos: 'Términos y Condiciones',
-  abreSitioOficial: 'Se abre el sitio oficial de la plataforma.',
-  siguenosInstagram: 'Síguenos en Instagram',
-  juegaEnTuPlataforma: 'El juego ocurre en tu plataforma aliada.',
 } as const;
 
 /** Estados de la Kiniela (próxima / abierta / cerrada). */
 export const ESTADOS_KINIELA = {
   proxima: {
     etiqueta: 'Próxima',
-    descripcion: 'La venta aún no abre.',
     cuentaRegresiva: 'Abre en',
   },
   abierta: {
     etiqueta: 'Venta abierta',
-    descripcion: 'Ya puedes jugar desde tu plataforma aliada.',
     cuentaRegresiva: 'Cierra en',
   },
   cerrada: {
     etiqueta: 'Venta cerrada',
-    descripcion: 'La venta de esta Kiniela ya cerró.',
     cuentaRegresiva: 'Cerrada',
   },
 } as const;
 
-/** Textos de horario y cierre. */
+/** Textos de horario. */
 export const HORARIOS = {
-  zona: HORA_VENEZUELA,
-  cierre: 'La venta cierra 1 minuto antes del primer partido.',
-  noEsperes: 'No esperes al último segundo: una conexión lenta puede dejarte sin jugar.',
   porConfirmar: 'Horario por confirmar',
-  cierraA: (hora: string) => `Cierra a las ${hora} (${HORA_VENEZUELA})`,
 } as const;
 
 /** Datos de la ficha de la edición, rótulos. */
 export const FICHA = {
   premio: 'Premio total',
-  costo: 'Costo del ticket',
-  gratuita: 'Edición gratuita: un ticket por usuario',
-  juegos: '10 partidos',
-  inicio: 'Inicio',
-  finalizacion: 'Finalización',
-  reglaGanador: 'Gana el máximo de aciertos, con un mínimo de 7',
 } as const;
 
 /** Franja de juego responsable (fija, pequeña, sin modal). */
@@ -85,45 +49,13 @@ export const JUEGO_RESPONSABLE_FRANJA = {
   lema: 'Juega con moderación',
   informa:
     'Esta página solo informa; el juego ocurre en el sitio de tu plataforma aliada.',
-  linea: '+18 · Juega con moderación · Esta página solo informa; el juego ocurre en el sitio de tu plataforma aliada.',
   pie: 'Juega solo con dinero que puedas permitirte perder. Los pronósticos no garantizan ganancias. Está prohibida la participación de menores de edad.',
 } as const;
 
-/** Mensajes de marca por sección. */
+/** Mensajes de marca usados en la web. */
 export const MARCA = {
   eslogan: 'Pronostica. Marca tus 10. Gana el máximo.',
-  heroTitulo: 'La taquilla abre de noche',
-  heroSubtitulo:
-    'Marca los 10 partidos, elige tu plataforma aliada y juega. Gana quien consiga más aciertos, con un mínimo de 7.',
-  reglasTitulo: 'Cómo se juega',
-  reglasSubtitulo: 'Sin letra pequeña: 10 partidos, una opción por partido, el máximo de aciertos se lleva el premio.',
-  premioLlega: 'Tu premio llega solo: se abona automáticamente en tu saldo, en no más de 24 horas después del último partido. No hay trámite de reclamo.',
-  faqTitulo: 'Preguntas frecuentes',
-  faqSubtitulo: 'Respuestas directas, tomadas de la guía oficial de Liga Kiniela.',
-  aliadosTitulo: '¿Dónde jugar?',
-  aliadosSubtitulo:
-    'Liga Kiniela se juega dentro de nuestras plataformas aliadas. Elige la tuya y entra a su sitio oficial.',
-  aliadosNota:
-    'Necesitas un usuario y saldo en la plataforma que elijas. La lista puede ampliarse; la vigente es la que se muestre en los canales oficiales de Liga Kiniela.',
-  terminosTitulo: 'Términos y Condiciones',
-  reglamentoTitulo: 'Reglamento oficial',
   contactoTitulo: 'Contacto',
-  guiaVersion: 'Guía oficial v2.0',
-} as const;
-
-/** Recordatorio de cierre dentro de la página. */
-export const RECORDATORIO = {
-  poco: 'Queda poco para el cierre de ventas.',
-  cierraEn: (tiempo: string) => `Cierra en ${tiempo}`,
-} as const;
-
-/** Calculadora "¿Cuánto cobro?" (a partir del Anexo C de la guía). */
-export const CALCULADORA = {
-  titulo: '¿Cuánto cobro?',
-  aviso:
-    'Cálculo de ejemplo con montos ilustrativos. El premio real es el que ves en la taquilla de cada edición.',
-  regla: 'Cada parte = premio total entre el número de tickets ganadores, con dos decimales.',
-  sinGanador: 'Si nadie llega al mínimo, nadie gana: el premio no se entrega ni se acumula.',
 } as const;
 
 /** Boleto de práctica (M3b). Cada mensaje vive en un solo lugar: ver docs/M3-mapa-de-mensajes.md. */
@@ -147,7 +79,6 @@ export const BOLETO = {
     }
     return `Para ganar necesitas ${minimo} aciertos como mínimo.`;
   },
-  minimoCorto: (minimo: number) => `mín. ${minimo}`,
   opciones: { L: 'Local', E: 'E', V: 'Visitante' },
   opcionAria: (n: number, opcion: string) => `Partido ${n}: ${opcion}`,
   grupoAria: (n: number, local: string, visitante: string) => `Partido ${n}: ${local} contra ${visitante}`,

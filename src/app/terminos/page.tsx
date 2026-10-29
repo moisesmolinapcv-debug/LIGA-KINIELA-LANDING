@@ -15,10 +15,17 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Reglamento y Términos y Condiciones | Liga Kiniela',
     description: 'El texto completo de Liga Kiniela, artículo por artículo.',
-    url: 'https://ligakiniela.com/terminos',
+    url: '/terminos',
     siteName: 'Liga Kiniela',
+    images: [{ url: '/og/liga-kiniela-og.png', width: 1200, height: 630, alt: 'Liga Kiniela: Pronostica. Marca tus 10. Gana el máximo.' }],
     locale: 'es_VE',
     type: 'article',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Reglamento y Términos y Condiciones | Liga Kiniela',
+    description: 'El texto completo de Liga Kiniela, artículo por artículo.',
+    images: ['/og/liga-kiniela-og.png'],
   },
 };
 
@@ -72,7 +79,7 @@ function Articulo({ a }: { a: ArticuloGuia }) {
       {a.tabla && <Tabla tabla={a.tabla} />}
 
       {a.complementaria && (
-        <aside className="mt-5 rounded-xl border border-kiniela-vinotinto bg-kiniela-vinotinto/25 p-4">
+        <div role="note" className="mt-5 rounded-xl border border-kiniela-vinotinto bg-kiniela-vinotinto/25 p-4">
           <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-kiniela-gold-light">
             <Scale aria-hidden="true" className="h-4 w-4" />
             {T.complementariaEtiqueta}
@@ -80,27 +87,27 @@ function Articulo({ a }: { a: ArticuloGuia }) {
           <p className="mt-2 font-semibold text-white">{a.complementaria.titulo}</p>
           <p className="mt-1 leading-relaxed text-slate-100">{a.complementaria.texto}</p>
           <p className="mt-2 text-sm text-slate-300">{T.complementariaAviso}</p>
-        </aside>
+        </div>
       )}
 
       {a.enPalabrasSimples && (
-        <aside className="mt-5 rounded-xl border-l-4 border-kiniela-gold bg-kiniela-gold/10 p-4">
+        <div role="note" className="mt-5 rounded-xl border-l-4 border-kiniela-gold bg-kiniela-gold/10 p-4">
           <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-kiniela-gold">
             <Lightbulb aria-hidden="true" className="h-4 w-4" />
             {T.enPalabrasSimples}
           </p>
           <p className="mt-1.5 leading-relaxed text-white">{a.enPalabrasSimples}</p>
-        </aside>
+        </div>
       )}
 
       {a.ejemplo && (
-        <aside className="mt-4 rounded-xl border border-white/15 bg-white/5 p-4">
+        <div role="note" className="mt-4 rounded-xl border border-white/15 bg-white/5 p-4">
           <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-300">
             <Info aria-hidden="true" className="h-4 w-4" />
             {T.ejemplo}
           </p>
           <p className="mt-1.5 leading-relaxed text-slate-100">{a.ejemplo}</p>
-        </aside>
+        </div>
       )}
 
       <p className="mt-4 text-right">
@@ -196,7 +203,7 @@ export default function TerminosPage() {
     <div className="relative flex min-h-screen max-w-full flex-col overflow-x-clip bg-kiniela-navy text-white selection:bg-kiniela-gold selection:text-kiniela-navy">
       <Navbar />
 
-      <main className="flex-grow pb-16 pt-24 sm:pt-28">
+      <main id="contenido" tabIndex={-1} className="flex-grow pb-16 pt-24 outline-none sm:pt-28">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <Link
             href="/"
@@ -221,7 +228,7 @@ export default function TerminosPage() {
 
           <div className="mt-8 grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-12">
             {/* Índice: plegable en móvil, fijo a la izquierda en escritorio */}
-            <aside className="lg:sticky lg:top-24 lg:self-start">
+            <aside aria-label={T.indice} className="lg:sticky lg:top-24 lg:self-start">
               <details className="m3c-panel lg:hidden">
                 <summary className="flex min-h-[56px] cursor-pointer items-center justify-between rounded-2xl px-5 py-3 font-semibold text-white">
                   {T.indice}

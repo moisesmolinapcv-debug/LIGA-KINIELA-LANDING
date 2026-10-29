@@ -195,15 +195,11 @@ export const EditionTab: React.FC<EditionTabProps> = ({ admin, notify }) => {
                 </dt>
                 <dd className="font-bold text-white text-lg">{k.isFree ? 'Gratis' : formatBs(k.ticketPriceBs)}</dd>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <dt className="text-xs font-bold text-slate-300 uppercase tracking-wider">Partidos</dt>
-                  <dd className="text-white font-bold">{k.matches.length}{k.totalMatches !== k.matches.length ? ` de ${k.totalMatches}` : ''}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs font-bold text-slate-300 uppercase tracking-wider">Estado</dt>
-                  <dd className="text-white font-bold">{STATUS_TEXT[k.status]}</dd>
-                </div>
+              <div className="grid grid-cols-2 gap-x-3">
+                <dt className="text-xs font-bold text-slate-300 uppercase tracking-wider">Partidos</dt>
+                <dt className="text-xs font-bold text-slate-300 uppercase tracking-wider">Estado</dt>
+                <dd className="text-white font-bold">{k.matches.length}{k.totalMatches !== k.matches.length ? ` de ${k.totalMatches}` : ''}</dd>
+                <dd className="text-white font-bold">{STATUS_TEXT[k.status]}</dd>
               </div>
               <div>
                 <dt className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">

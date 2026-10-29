@@ -11,8 +11,11 @@ export interface UploadResult {
 export const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 export const ALLOWED_IMAGE_LABEL = 'JPG, PNG o WebP';
 
-/** Peso máximo permitido al subir. El recomendado (300 KB / 250 KB) solo genera una advertencia. */
-export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+/**
+ * Peso máximo permitido al subir (decisión del cliente, 28-oct-2026). Por encima se bloquea la subida;
+ * el recomendado (300 KB escritorio / 250 KB celular) solo genera una advertencia.
+ */
+export const MAX_UPLOAD_BYTES = 600 * 1024;
 
 /** Valida tipo y peso máximo. Devuelve un mensaje claro o null si el archivo es aceptable. */
 export function validateImageFile(file: File): string | null {
@@ -20,8 +23,10 @@ export function validateImageFile(file: File): string | null {
     return `Este archivo no es una imagen permitida. Usa ${ALLOWED_IMAGE_LABEL} (no se aceptan GIF ni SVG).`;
   }
   if (file.size > MAX_UPLOAD_BYTES) {
-    const mb = (file.size / (1024 * 1024)).toFixed(1).replace('.', ',');
-    return `La imagen pesa ${mb} MB y el máximo es 5 MB. Comprímela antes de subirla (lo ideal es menos de 300 KB).`;
+    const peso = file.size >= 1024 * 1024
+      ? `${(file.size / (1024 * 1024)).toFixed(1).replace('.', ',')} MB`
+      : `${Math.round(file.size / 1024)} KB`;
+    return `Esta imagen pesa ${peso} y el máximo es 600 KB. Comprímela (por ejemplo en squoosh.app) e inténtalo de nuevo. Lo ideal es menos de 300 KB.`;
   }
   return null;
 }
@@ -96,16 +101,4 @@ export async function uploadMediaFile(
     const message = err instanceof Error ? err.message : undefined;
     return { url: null, error: explainStorageError(message) };
   }
-}
-
-/**
- * Convierte un archivo local a Data URL Base64 (solo para vistas previas locales).
- */
-export function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = (error) => reject(error);
-    reader.readAsDataURL(file);
-  });
 }

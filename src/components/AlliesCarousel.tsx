@@ -24,7 +24,7 @@ export const ALLIES_LIST: Ally[] = ALIADOS.map((a) => ({
  * reserve su espacio antes de cargar y nada cambie de tamaño durante la animación.
  */
 const LOGO_MEDIDAS: Record<string, [number, number]> = {
-  '/allies/parley-com-ve.png': [800, 340],
+  '/allies/parley-com-ve.png': [424, 180],
   '/allies/micasino.png': [230, 75],
   '/allies/triples.png': [170, 62],
   '/allies/sellatuparley.png': [206, 182],
@@ -32,7 +32,7 @@ const LOGO_MEDIDAS: Record<string, [number, number]> = {
   '/allies/redhairbet.png': [265, 95],
   '/allies/meridianobet.png': [446, 86],
   '/allies/cordialito.png': [300, 60],
-  '/allies/caman.png': [835, 247],
+  '/allies/caman.png': [424, 125],
 };
 
 interface AlliesCarouselProps {
@@ -71,7 +71,7 @@ function Juego({ copia }: { copia: boolean }) {
                   alt={copia ? '' : ally.name}
                   width={w}
                   height={h}
-                  loading="eager"
+                  loading="lazy"
                   decoding="async"
                   draggable={false}
                   style={{ aspectRatio: `${w} / ${h}` }}

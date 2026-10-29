@@ -252,7 +252,7 @@ function AdminPanel({ onLogout, addToast }: PanelProps) {
         </div>
       </nav>
 
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+      <main id="contenido" tabIndex={-1} className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 outline-none">
         {kinielaData.source === 'local' && (activeTab === 'banner' || activeTab === 'winners') && (
           <div role="alert" className="mb-6 flex gap-3 p-4 rounded-xl bg-amber-950/50 border border-amber-500/50 text-amber-100 text-sm">
             <WifiOff className="w-5 h-5 text-amber-300 shrink-0 mt-0.5" aria-hidden="true" />

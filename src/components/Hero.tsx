@@ -304,7 +304,7 @@ function KinielaTabs({ list, selectedId, onSelect, statusOf }: TabsProps) {
 
 function HeroLoading() {
   return (
-    <div aria-busy="true" aria-label="Cargando la Kiniela" className="relative lg:grid lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:gap-12">
+    <div aria-busy="true" aria-label="Cargando la Kiniela" className="hero-sk relative lg:grid lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:gap-12">
       <div className="min-w-0 space-y-3">
         <div className="tq-sk h-3 w-52" />
         <div className="tq-sk h-7 w-28 rounded-full" />

@@ -53,7 +53,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-[#000428] relative overflow-hidden">
+    <main id="contenido" className="min-h-screen flex items-center justify-center p-4 bg-[#000428] relative overflow-hidden">
       {/* Luces de fondo ambientadas con los colores de marca */}
       <div className="absolute -top-40 -left-40 w-96 h-96 bg-[#882445]/20 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-[#FFAF3F]/15 rounded-full blur-[120px] pointer-events-none" />
@@ -198,6 +198,6 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess }) => {
           </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 };

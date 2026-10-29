@@ -87,7 +87,7 @@ export function ShareDialog({ blob, onClose }: { blob: Blob; onClose: () => void
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 p-3 sm:p-6"
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-6"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}

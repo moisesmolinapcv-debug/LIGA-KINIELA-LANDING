@@ -6,9 +6,13 @@ import { ArrowRight, BookOpen, HelpCircle } from 'lucide-react';
 
 import { SiteCopys } from '../types/kiniela';
 import { ENLACE_REGLAMENTO, FAQ_TEXTOS, REGLAS_SECCION } from '../content/landing';
+import dynamic from 'next/dynamic';
 import { Pizarra, PasosAcordeon } from './taquilla/Pizarra';
-import { Calculadora } from './taquilla/Calculadora';
-import { PreguntasFrecuentes } from './taquilla/PreguntasFrecuentes';
+
+// Bloques bajo el pliegue: se renderizan en el HTML inicial (sin saltos de diseño) pero su JavaScript
+// se descarga aparte, sin competir con el hero y el boleto.
+const Calculadora = dynamic(() => import('./taquilla/Calculadora').then((m) => m.Calculadora));
+const PreguntasFrecuentes = dynamic(() => import('./taquilla/PreguntasFrecuentes').then((m) => m.PreguntasFrecuentes));
 
 interface RulesAndFaqSectionProps {
   // Se conserva por compatibilidad con la página; los textos de esta sección vienen de src/content/landing.ts

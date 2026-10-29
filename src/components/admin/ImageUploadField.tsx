@@ -164,7 +164,7 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
         <ul className="mt-1.5 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-0.5 text-xs text-slate-200">
           <li>Se ve en: {spec.where}</li>
           <li>Proporción: {spec.ratioLabel}</li>
-          <li>Peso máximo recomendado: {spec.maxKb} KB</li>
+          <li>Peso ideal: menos de {spec.maxKb} KB (no se sube si pasa de 600 KB)</li>
           <li>Formato: {ALLOWED_IMAGE_LABEL} (no GIF)</li>
           <li className="sm:col-span-2">
             Zona segura (textos y logos dentro): {spec.safe.side} px a cada lado, {spec.safe.top} px arriba y {spec.safe.bottom} px abajo.
@@ -310,7 +310,7 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
                 <UploadCloud className="w-5 h-5" aria-hidden="true" />
               </span>
               <span className="text-sm font-bold text-white">Toca para elegir una imagen o arrástrala aquí</span>
-              <span className="text-xs text-slate-300">{ALLOWED_IMAGE_LABEL} · hasta 5 MB (lo ideal: menos de {spec.maxKb} KB)</span>
+              <span className="text-xs text-slate-300">{ALLOWED_IMAGE_LABEL} · máximo 600 KB (lo ideal: menos de {spec.maxKb} KB)</span>
             </>
           )}
         </div>

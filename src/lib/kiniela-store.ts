@@ -57,6 +57,9 @@ export const isSupabaseConfigured = (): boolean => {
   );
 };
 
+/** Credenciales públicas (anon) para lecturas REST en el servidor (ver banners-server.ts). */
+export const getSupabaseRestConfig = () => ({ ok: isSupabaseConfigured(), url: supabaseUrl, key: supabaseAnonKey });
+
 export const getSupabase = (): SupabaseClient | null => {
   if (supabaseInstance) return supabaseInstance;
   if (isSupabaseConfigured()) {
@@ -262,204 +265,6 @@ export const getKinielaData = async (): Promise<KinielaDataState> => {
   return localState;
 };
 
-/**
- * Actualiza la edición actual (Títulos, precios, fechas, pozo acumulado).
- */
-export const updateEdition = async (editionUpdate: Partial<KinielaEdition>): Promise<KinielaEdition> => {
-  const current = readLocalData();
-  const updatedEdition: KinielaEdition = {
-    ...current.edition,
-    ...editionUpdate,
-  };
-
-  const client = getSupabase();
-  if (client) {
-    try {
-      const query = client.from('kiniela_editions').update(editionUpdate);
-      const { data, error } =
-        updatedEdition.id && !updatedEdition.id.startsWith('edition-default')
-          ? await query.eq('id', updatedEdition.id).select().single()
-          : await query.eq('is_active', true).select().single();
-
-      if (!error && data) {
-        current.edition = data as KinielaEdition;
-        current.source = 'supabase';
-        writeLocalData(current);
-        return data as KinielaEdition;
-      }
-    } catch (err) {
-      console.warn('[LigaKiniela] Error al actualizar edición en Supabase, aplicando fallback local:', err);
-    }
-  }
-
-  current.edition = updatedEdition;
-  current.source = 'local';
-  writeLocalData(current);
-  return updatedEdition;
-};
-
-/**
- * Añade un nuevo encuentro deportivo a la cartelera.
- */
-export const addMatch = async (matchData: Omit<Match, 'id'>): Promise<Match> => {
-  const current = readLocalData();
-
-  const client = getSupabase();
-  if (client) {
-    try {
-      let targetEditionId = matchData.edition_id || current.edition.id;
-      if (!targetEditionId || targetEditionId.startsWith('edition-default')) {
-        targetEditionId = 'f5141dac-6248-48d8-9626-0ae9cce4c3fe';
-      }
-      const payload = {
-        ...matchData,
-        edition_id: targetEditionId,
-      };
-      const { data, error } = await client
-        .from('matches')
-        .insert([payload])
-        .select()
-        .single();
-
-      if (!error && data) {
-        const newMatch = data as Match;
-        current.matches.push(newMatch);
-        current.source = 'supabase';
-        writeLocalData(current);
-        return newMatch;
-      }
-    } catch (err) {
-      console.warn('[LigaKiniela] Error al insertar partido en Supabase, aplicando fallback local:', err);
-    }
-  }
-
-  const newMatch: Match = {
-    ...matchData,
-    id: 'match-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
-    edition_id: matchData.edition_id || current.edition.id,
-    created_at: new Date().toISOString(),
-  };
-
-  current.matches.push(newMatch);
-  current.source = 'local';
-  writeLocalData(current);
-  return newMatch;
-};
-
-/**
- * Actualiza un encuentro deportivo existente (estado, marcador, minuto, nombres).
- */
-export const updateMatch = async (id: string, matchUpdate: Partial<Match>): Promise<Match> => {
-  const current = readLocalData();
-  const matchIndex = current.matches.findIndex((m) => m.id === id);
-
-  if (supabaseInstance) {
-    try {
-      const { data, error } = await supabaseInstance
-        .from('matches')
-        .update(matchUpdate)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (!error && data) {
-        const updated = data as Match;
-        if (matchIndex !== -1) {
-          current.matches[matchIndex] = updated;
-        }
-        current.source = 'supabase';
-        writeLocalData(current);
-        return updated;
-      }
-    } catch (err) {
-      console.warn('[LigaKiniela] Error al actualizar partido en Supabase, aplicando fallback local:', err);
-    }
-  }
-
-  if (matchIndex === -1) {
-    throw new Error(`Encuentro con id ${id} no encontrado.`);
-  }
-
-  const updatedMatch: Match = {
-    ...current.matches[matchIndex],
-    ...matchUpdate,
-  };
-
-  current.matches[matchIndex] = updatedMatch;
-  current.source = 'local';
-  writeLocalData(current);
-  return updatedMatch;
-};
-
-/**
- * Elimina un partido de la cartelera.
- */
-export const deleteMatch = async (id: string): Promise<boolean> => {
-  const current = readLocalData();
-
-  if (supabaseInstance) {
-    try {
-      const { error } = await supabaseInstance.from('matches').delete().eq('id', id);
-      if (!error) {
-        current.matches = current.matches.filter((m) => m.id !== id);
-        current.source = 'supabase';
-        writeLocalData(current);
-        return true;
-      }
-    } catch (err) {
-      console.warn('[LigaKiniela] Error al eliminar partido en Supabase, aplicando fallback local:', err);
-    }
-  }
-
-  current.matches = current.matches.filter((m) => m.id !== id);
-  current.source = 'local';
-  writeLocalData(current);
-  return true;
-};
-
-/**
- * Actualiza o reemplaza el banner publicitario activo.
- */
-export const updateBanner = async (bannerUpdate: Partial<Banner>): Promise<Banner> => {
-  const current = readLocalData();
-  const existingBanner = current.banner || {
-    id: 'banner-default-1',
-    title: 'Promoción Liga Kiniela',
-    image_url: '',
-    target_link: '#',
-    is_active: true,
-  };
-
-  const updatedBanner: Banner = {
-    ...existingBanner,
-    ...bannerUpdate,
-  };
-
-  if (supabaseInstance && updatedBanner.id) {
-    try {
-      const { data, error } = await supabaseInstance
-        .from('banners')
-        .upsert(updatedBanner)
-        .select()
-        .single();
-
-      if (!error && data) {
-        current.banner = data as Banner;
-        current.source = 'supabase';
-        writeLocalData(current);
-        return data as Banner;
-      }
-    } catch (err) {
-      console.warn('[LigaKiniela] Error al actualizar banner en Supabase, aplicando fallback local:', err);
-    }
-  }
-
-  current.banner = updatedBanner;
-  current.source = 'local';
-  writeLocalData(current);
-  return updatedBanner;
-};
-
 // ----------------------------------------------------------------------------
 // Escrituras de banners y campeones: si Supabase está configurado, un fallo se
 // REPORTA (no se guarda "en silencio" en el navegador, porque el público no lo vería).
@@ -651,31 +456,6 @@ export const updateWinner = async (id: string, winnerUpdate: Partial<Winner>): P
   return updated;
 };
 
-/**
- * (Antiguo) Actualiza los textos de la web. La landing ya no los lee: se conserva solo por compatibilidad.
- */
-export const updateSiteCopys = async (copysUpdate: Partial<SiteCopys>): Promise<SiteCopys> => {
-  const current = readLocalData();
-  const updatedCopys: SiteCopys = {
-    ...(current.copys || DEFAULT_COPYS),
-    ...copysUpdate,
-  };
-  current.copys = updatedCopys;
-  writeLocalData(current);
-
-  if (supabaseInstance) {
-    try {
-      await supabaseInstance
-        .from('site_copys')
-        .upsert({ id: 'main_copys', ...updatedCopys });
-    } catch {
-      // Fallback a LocalStorage garantizado
-    }
-  }
-
-  return updatedCopys;
-};
-
 // ----------------------------------------------------------------------------
 // Textos antiguos (site_copys): solo lectura y borrado para que el cliente los revise (Q16).
 // ----------------------------------------------------------------------------
@@ -740,15 +520,6 @@ export const deleteStoredCopys = async (): Promise<void> => {
   const current = readLocalData();
   current.copys = DEFAULT_COPYS;
   writeLocalData(current);
-};
-
-/**
- * Restablece la copia local del navegador (no toca la base de datos).
- */
-export const resetToDefault = async (): Promise<KinielaDataState> => {
-  const freshSeed = getDefaultSeed();
-  writeLocalData(freshSeed);
-  return freshSeed;
 };
 
 /**
