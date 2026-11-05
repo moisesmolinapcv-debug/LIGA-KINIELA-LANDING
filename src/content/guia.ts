@@ -732,6 +732,20 @@ export const FAQ: PreguntaFrecuente[] = [
   { pregunta: '¿Dónde veo los resultados?', respuesta: 'En Menú > Resultados.' },
   { pregunta: '¿Dónde veo a los ganadores?', respuesta: 'En Menú > Campeones.' },
   { pregunta: '¿Qué hora se usa?', respuesta: 'La hora de Venezuela.' },
+  { pregunta: '¿Qué edad necesito para jugar?', respuesta: 'Ser mayor de 18 años. Los menores de edad no pueden participar.' },
+  {
+    pregunta: '¿Puedo jugar desde otro país?',
+    respuesta: 'Liga Kiniela se juega desde Venezuela. Si estás en otro lugar, es tu responsabilidad verificar que participar sea legal allí.',
+  },
+  {
+    pregunta: '¿Cuánto dinero debo jugar?',
+    respuesta: 'Solo dinero que puedas permitirte perder. Los pronósticos no garantizan ganancias.',
+  },
+  {
+    pregunta: '¿Qué hago si siento que pierdo el control?',
+    respuesta:
+      'Deja de jugar y busca ayuda profesional. Puedes pedir a tu plataforma aliada herramientas de límites o autoexclusión.',
+  },
   {
     pregunta: '¿A quién escribo si tengo dudas?',
     respuesta: 'A aasolucionesdigitales@gmail.com o a @LigaKiniela en Instagram.',

@@ -65,7 +65,7 @@ export const FAQ_CATEGORIAS: { id: FaqCategoriaId; nombre: string }[] = [
 ];
 
 /**
- * Agrupamiento de las 23 preguntas de la guía (Anexo E) por categoría.
+ * Agrupamiento de las 27 preguntas de la guía v2.1 (Anexo E) por categoría.
  * Se enlaza por el texto exacto de la pregunta; si una pregunta nueva no está aquí, cae en "Jugar".
  */
 const CATEGORIA_POR_PREGUNTA: Record<string, FaqCategoriaId> = {
@@ -91,6 +91,10 @@ const CATEGORIA_POR_PREGUNTA: Record<string, FaqCategoriaId> = {
   '¿Dónde veo los resultados?': 'plataformas',
   '¿Dónde veo a los ganadores?': 'plataformas',
   '¿Me descuentan impuestos del premio?': 'seguridad',
+  '¿Qué edad necesito para jugar?': 'seguridad',
+  '¿Puedo jugar desde otro país?': 'seguridad',
+  '¿Cuánto dinero debo jugar?': 'seguridad',
+  '¿Qué hago si siento que pierdo el control?': 'seguridad',
   '¿A quién escribo si tengo dudas?': 'seguridad',
 };
 

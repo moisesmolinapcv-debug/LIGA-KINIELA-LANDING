@@ -1,7 +1,7 @@
 /**
  * Plataformas aliadas: Anexo A de la GUÍA LIGA KINIELA v2.0 (9, en ese orden).
  * La guía manda (D3, D5): el dominio se conserva tal como aparece en la guía,
- * aunque difiera de otro nombre (p. ej. READHAIRBET.COM vs redhairbet.com del pool de logos).
+ * aunque difiera de otro nombre (p. ej. CAMAN.VIP vs camanbet del pool de logos).
  * Sin URL directa a la taquilla: los botones abren el sitio oficial del aliado.
  * Nota (Anexo A): la lista puede ampliarse; la vigente es la de los canales oficiales.
  */
@@ -75,11 +75,11 @@ export const ALIADOS: Aliado[] = [
   {
     id: 6,
     nombre: 'Redhairbet',
-    dominioGuia: 'READHAIRBET.COM',
+    dominioGuia: 'REDHAIRBET.COM',
     url: 'https://redhairbet.com',
     logo: '/allies/redhairbet.png',
     logoRemoto: 'https://redhairbet.com/storage/images/1733337657.png',
-    nota: 'Cliente confirmó (28-oct-2026): el dominio correcto es redhairbet.com. La guía v2.0 escribe READHAIRBET.COM, error tipográfico por corregir en la próxima versión de la guía.',
+    nota: 'Corregido en la guía v2.1 (29-oct-2026): el dominio es REDHAIRBET.COM. La guía v2.0 decía READHAIRBET.COM por un error de escritura.',
   },
   {
     id: 7,
