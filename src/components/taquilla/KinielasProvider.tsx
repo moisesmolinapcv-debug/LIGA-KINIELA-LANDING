@@ -9,6 +9,7 @@ import React, { createContext, useContext, useMemo, useState } from 'react';
 import type { Kiniela, KinielasResponse, KinielaStatus } from '../../types/kinielas';
 import { useKinielas } from '../../lib/kinielas/use-kinielas';
 import { getKinielaStatus } from '../../lib/kinielas/time';
+import { ordenarPorProximidad } from '../../lib/kinielas/order';
 import { useNow } from './hooks';
 
 interface KinielasContextValue {
@@ -26,22 +27,13 @@ interface KinielasContextValue {
 
 const KinielasContext = createContext<KinielasContextValue | null>(null);
 
-/** Elige la Kiniela inicial: la primera abierta, si no la primera próxima, si no la primera. */
-function pickDefault(list: Kiniela[], statuses: Record<number, KinielaStatus>): Kiniela | undefined {
-  return (
-    list.find((k) => statuses[k.id] === 'abierta') ??
-    list.find((k) => statuses[k.id] === 'proxima') ??
-    list[0]
-  );
-}
-
 export function KinielasProvider({ children }: { children: React.ReactNode }) {
-  const { data, kinielas, loading, error, refresh } = useKinielas();
+  const { data, kinielas: kinielasCrudas, loading, error, refresh } = useKinielas();
   const now = useNow(1000);
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
   // La clave de estados cambia solo cuando alguna Kiniela cambia de estado.
-  const statusKey = kinielas
+  const statusKey = kinielasCrudas
     .map((k) => `${k.id}:${now ? getKinielaStatus(k.salesStart, k.closesAt, now) : k.status}`)
     .join('|');
   const statuses = useMemo(() => {
@@ -54,9 +46,16 @@ export function KinielasProvider({ children }: { children: React.ReactNode }) {
     return out;
   }, [statusKey]);
 
+  // Orden de las opciones: la más próxima a jugarse primero (y es la que se muestra por defecto).
+  // Se reordena sola cuando una Kiniela empieza y deja de ser la próxima.
+  const kinielas = useMemo(
+    () => ordenarPorProximidad(kinielasCrudas, (k) => statuses[k.id] ?? k.status),
+    [kinielasCrudas, statuses],
+  );
+
   const selected = useMemo(
-    () => kinielas.find((k) => k.id === selectedId) ?? pickDefault(kinielas, statuses),
-    [kinielas, selectedId, statuses],
+    () => kinielas.find((k) => k.id === selectedId) ?? kinielas[0],
+    [kinielas, selectedId],
   );
 
   // "Desactualizado" de verdad: respaldo del servidor o refresco fallido. El caché local
