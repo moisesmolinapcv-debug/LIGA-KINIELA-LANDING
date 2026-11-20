@@ -1,7 +1,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Mail, Instagram, Globe } from 'lucide-react';
+import { Mail, Instagram, Globe, MessageSquareText } from 'lucide-react';
 import { CONTACTO } from '../content/contacto';
 import { JUEGO_RESPONSABLE_FRANJA, MARCA, CTA } from '../content/copys';
 
@@ -70,6 +70,12 @@ export const Footer: React.FC = () => {
           <div className="md:col-span-4">
             <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-kiniela-gold">{MARCA.contactoTitulo}</h2>
             <ul>
+              <li>
+                <a href="/#contacto" className={`${linkCls} gap-2`}>
+                  <MessageSquareText aria-hidden="true" className="h-4 w-4 shrink-0 text-kiniela-gold" />
+                  Formulario de contacto
+                </a>
+              </li>
               <li>
                 <a href={CONTACTO.correoUrl} className={`${linkCls} gap-2 break-all`}>
                   <Mail aria-hidden="true" className="h-4 w-4 shrink-0 text-kiniela-gold" />

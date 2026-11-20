@@ -190,6 +190,18 @@ Un **Agente Master/Validador** (yo, como director) tiene la última palabra. Nin
 | Q15 | Aprobados: eslogan "Pronostica. Marca tus 10. Gana el máximo.", nombres comerciales de aliados y enlace de Instagram `instagram.com/ligakiniela/` | M3 |
 | Q16 | Los copys viejos de la BD se revisan desde el admin cuando M5 los exponga | M5 |
 
+### Decisiones del 20-nov-2026 (tarea "Contacto")
+
+| # | Decisión | Aplicación |
+|---|---|---|
+| Q17 | El correo público pasa a ser **contacto@ligakiniela.com.ve** (pie, FAQ, ficha, T&C y guía v2.1 rev.). La web sigue siendo `ligakiniela.com` | Contenido |
+| Q18 | Formulario de contacto en la landing (`#contacto`), envío por **Mailgun API** desde `/api/contacto` (servidor), sin respuesta automática al usuario | Frontend + API |
+| Q19 | Antibots: **Cloudflare Turnstile** validado en el servidor, campo trampa y tiempo mínimo de llenado | API |
+| Q20 | Envío desde el subdominio `mg.ligakiniela.com.ve` (DNS a cargo del equipo de Sistemas). Ver `docs/CONTACTO-configuracion.md` | Sistemas |
+| Q21 | T&C y guía: nuevo 21.4 sobre los datos del formulario | Contenido |
+| Q22 | M7 en espera hasta nueva orden | n/a |
+| Q23 | **Mailgun se descarta** (suspendió la cuenta al activarla con teléfono venezolano). Se usa **SMTP2GO** (Nueva Zelanda, gratis 1.000/mes, 200/día). Remitente `no-reply@ligakiniela.com.ve`; el dominio raíz se verifica con CNAME nuevos sin tocar el correo actual. Sustituye lo dicho en Q18 y Q20 sobre Mailgun y `mg.` | API + Sistemas |
+
 ---
 
 ## 9. RESULTADOS M1 (INVESTIGACIÓN), APROBADO CON RESERVAS

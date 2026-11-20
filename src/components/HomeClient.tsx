@@ -13,6 +13,10 @@ import { Footer } from './Footer';
 import { BottomNavBar } from './BottomNavBar';
 import { KinielasProvider } from './taquilla/KinielasProvider';
 import { WinnersSkeleton } from './skeletons/WinnersSkeleton';
+import dynamic from 'next/dynamic';
+
+// Bajo el pliegue: el HTML viene en la primera carga, pero su JavaScript se descarga aparte.
+const ContactSection = dynamic(() => import('./ContactSection').then((m) => m.ContactSection));
 
 interface HomeClientProps {
   /** Banners leídos en el servidor (ISR, 60 s): el primero ya viene en el HTML y su imagen carga de inmediato. */
@@ -109,6 +113,9 @@ export default function HomeClient({ initialBanners = [] }: HomeClientProps) {
           titleText={data.copys?.allies_title}
           subtitleText={data.copys?.allies_subtitle}
         />
+
+        {/* 6. Contacto: formulario (SMTP2GO + Turnstile, vía /api/contacto) */}
+        <ContactSection />
       </main>
 
       {/* Pie de Página Institucional */}

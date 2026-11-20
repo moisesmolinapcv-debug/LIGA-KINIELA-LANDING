@@ -1,9 +1,9 @@
 # LIGA KINIELA
 ## Guía Oficial: Información General, Cómo Jugar, Reglamento y Términos y Condiciones
 
-**Versión 2.1** | Emisión: 27 de octubre de 2026 | Actualización: 29 de octubre de 2026 | País: Venezuela | Hora oficial: Venezuela (UTC-4)
+**Versión 2.1** | Emisión: 27 de octubre de 2026 | Actualización: 20 de noviembre de 2026 | País: Venezuela | Hora oficial: Venezuela (UTC-4)
 
-Contacto: aasolucionesdigitales@gmail.com | Instagram: @LigaKiniela | Web: ligakiniela.com
+Contacto: contacto@ligakiniela.com.ve | Instagram: @LigaKiniela | Web: ligakiniela.com
 
 <!-- cover-end -->
 
@@ -437,6 +437,8 @@ Este Reglamento regula la organización, el desarrollo, la determinación de gan
 
 21.3. Para consultas sobre sus datos, el usuario puede escribir a los canales del Artículo 24.
 
+21.4. Los datos enviados por el formulario de contacto de la web (nombre, correo y mensaje) se usan solo para responder la consulta. No se publican ni se usan con fines comerciales.
+
 ## Artículo 22. Propiedad intelectual
 
 22.1. La marca "Liga Kiniela", su logotipo, su mascota, el diseño de la taquilla y sus contenidos son de su titular y no pueden usarse sin autorización.
@@ -453,7 +455,8 @@ Este Reglamento regula la organización, el desarrollo, la determinación de gan
 
 24.1. Las consultas y el aviso de errores se atienden por estos canales:
 
-- **Correo:** aasolucionesdigitales@gmail.com
+- **Correo:** contacto@ligakiniela.com.ve
+- **Formulario de contacto:** en la sección Contacto de ligakiniela.com
 - **Instagram:** @LigaKiniela
 - **Web:** ligakiniela.com
 
@@ -636,7 +639,7 @@ La taquilla oficial de Liga Kiniela está disponible en estas plataformas:
 
 **¿Qué hago si siento que pierdo el control?** Deja de jugar y busca ayuda profesional. Puedes pedir a tu plataforma aliada herramientas de límites o autoexclusión.
 
-**¿A quién escribo si tengo dudas?** A aasolucionesdigitales@gmail.com o a @LigaKiniela en Instagram.
+**¿A quién escribo si tengo dudas?** A contacto@ligakiniela.com.ve, por el formulario de contacto de ligakiniela.com o a @LigaKiniela en Instagram.
 
 # ANEXO F. FICHA RESUMEN
 
@@ -662,7 +665,7 @@ La taquilla oficial de Liga Kiniela está disponible en estas plataformas:
 | Pago del premio | Automático, en no más de 24 horas, en el saldo de la plataforma |
 | Reclamos de premio | No existen; el pago es automático |
 | Edad mínima | 18 años |
-| Contacto | aasolucionesdigitales@gmail.com y @LigaKiniela |
+| Contacto | contacto@ligakiniela.com.ve, formulario web y @LigaKiniela |
 
 # CONTROL DE VERSIONES
 
@@ -670,5 +673,6 @@ La taquilla oficial de Liga Kiniela está disponible en estas plataformas:
 |---|---|---|
 | 2.0 | 27 de octubre de 2026 | Emisión original. |
 | 2.1 | 29 de octubre de 2026 | Anexo A: el dominio de la plataforma 6 es **REDHAIRBET.COM** (la versión 2.0 decía READHAIRBET.COM por un error de escritura). Anexo E: cuatro preguntas nuevas sobre edad, país de juego, cuánto jugar y qué hacer si se pierde el control (basadas en los Artículos 14 y 20). El resto del contenido no cambia. |
+| 2.1 (rev.) | 20 de noviembre de 2026 | Artículo 24, Anexo E y Anexo F: el correo de contacto pasa a ser **contacto@ligakiniela.com.ve** y se añade el formulario de contacto de la web como canal. Artículo 21: nuevo punto 21.4 sobre los datos del formulario de contacto. El resto del contenido no cambia. |
 
 *Fin del documento. Liga Kiniela, versión 2.1.*

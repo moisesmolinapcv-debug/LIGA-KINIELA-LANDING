@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Trophy, Calendar, HelpCircle, BookOpen, Menu, X, Award, Handshake } from 'lucide-react';
+import { Trophy, Calendar, HelpCircle, BookOpen, Menu, X, Award, Handshake, Mail } from 'lucide-react';
 import { JUEGO_RESPONSABLE_FRANJA } from '../content/copys';
 
 const NAV_LINKS = [
@@ -13,6 +13,7 @@ const NAV_LINKS = [
   { name: 'Campeones', href: '/#campeones', icon: Award },
   { name: 'Aliados', href: '/#aliados', icon: Handshake },
   { name: 'Preguntas', href: '/#faq', icon: HelpCircle },
+  { name: 'Contacto', href: '/#contacto', icon: Mail },
 ];
 
 export const Navbar: React.FC = () => {

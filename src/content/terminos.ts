@@ -284,6 +284,7 @@ export const TERMINOS: ArticuloGuia[] = [
       '21.1. Liga Kiniela y las plataformas aliadas usarán los datos del usuario solo para operar el servicio, determinar y pagar premios, prevenir fraudes y cumplir obligaciones legales.',
       '21.2. El usuario acepta que su nombre de usuario, sus tickets y su condición de ganador puedan ser vistos por otros participantes en las secciones Tickets Quinielas y Campeones.',
       '21.3. Para consultas sobre sus datos, el usuario puede escribir a los canales del Artículo 24.',
+      '21.4. Los datos enviados por el formulario de contacto de la web (nombre, correo y mensaje) se usan solo para responder la consulta. No se publican ni se usan con fines comerciales.',
     ],
   },
   {
@@ -307,7 +308,8 @@ export const TERMINOS: ArticuloGuia[] = [
     titulo: 'Contacto',
     parrafos: [
       '24.1. Las consultas y el aviso de errores se atienden por estos canales:',
-      'Correo: aasolucionesdigitales@gmail.com',
+      'Correo: contacto@ligakiniela.com.ve',
+      'Formulario de contacto: en la sección Contacto de ligakiniela.com',
       'Instagram: @LigaKiniela',
       'Web: ligakiniela.com',
       '24.2. Estos canales son para consultas y para avisar de errores. No existe trámite de reclamo de premios, porque el premio se abona automáticamente (Artículo 8).',

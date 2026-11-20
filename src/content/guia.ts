@@ -748,7 +748,8 @@ export const FAQ: PreguntaFrecuente[] = [
   },
   {
     pregunta: '¿A quién escribo si tengo dudas?',
-    respuesta: 'A aasolucionesdigitales@gmail.com o a @LigaKiniela en Instagram.',
+    respuesta:
+      'A contacto@ligakiniela.com.ve, por el formulario de contacto de esta página o a @LigaKiniela en Instagram.',
   },
 ];
 
@@ -777,7 +778,7 @@ export const FICHA_RESUMEN: { concepto: string; detalle: string }[] = [
   { concepto: 'Pago del premio', detalle: 'Automático, en no más de 24 horas, en el saldo de la plataforma' },
   { concepto: 'Reclamos de premio', detalle: 'No existen; el pago es automático' },
   { concepto: 'Edad mínima', detalle: '18 años' },
-  { concepto: 'Contacto', detalle: 'aasolucionesdigitales@gmail.com y @LigaKiniela' },
+  { concepto: 'Contacto', detalle: 'contacto@ligakiniela.com.ve, formulario web y @LigaKiniela' },
 ];
 
 /* ------------------------------------------------------------------ */
